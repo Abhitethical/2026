@@ -8,4 +8,7 @@ def home(request):
 def productsearch(request):
     return render(request,"productsearch.html")
 
- 
+def login(request):
+    return render(request,"login.html")
+
+
