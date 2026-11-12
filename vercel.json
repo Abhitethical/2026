@@ -1,16 +1,18 @@
-
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "functions": {
-    "host/wsgi.py": {
-      "maxDuration": 10
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/host/wsgi.py"
-    }
-  ]
+    "builds":[
+        {
+            "src":"host/wsgi.py",
+            "use":"@vercel/python",
+            "config":{
+                "maxLambadaSize":"15mb",
+                "runtime":"python3.12"
+            }
+        }
+    ],
+    "routes":[
+        {
+            "src":"/(.*)",
+            "dest":"host/wsgi.py"
+        }
+    ]
 }
