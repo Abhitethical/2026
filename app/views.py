@@ -34,5 +34,8 @@ def login(request):
 
 def login(request):
     return render(request,"login.html")
+def helpcenter(request):
+    return render(request,"helpcenter.html")
+
 
 
