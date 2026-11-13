@@ -14,4 +14,13 @@ urlpatterns=[
 
 
     path("helpcenter",views.helpcenter, name="helpcenter"),
+
+
+
+    path("contacts",views.contacts, name="contacts"),
+    path("shipping",views.shipping, name="shipping"),
+    path("returnpolicy",views.returnpolicy, name="helpcenter"),
+    path("privacypolicy",views.helpcenter, name="helpcenter"),
+    path("termsconditions",views.termsconditions, name="termsconditions"),
+    path("cookiepolicy",views.cookiepolicy, name="cookiepolicy"),
 ]
