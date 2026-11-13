@@ -34,6 +34,7 @@ ALLOWED_HOSTS = [    '127.0.0.1',
 # Application definition
 
 INSTALLED_APPS = [
+    "jazzmin",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +43,86 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app'
 ]
+
+
+
+JAZZMIN_SETTINGS = {
+    "site_title": "ShopKart Control Centre",
+    "site_header": "ShopKart",
+    "site_brand": "ShopKart",
+    "welcome_sign": "Welcome to ShopKart Control Centre",
+    "copyright": "ShopKart",
+
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "show_ui_builder": False,
+    "related_modal_active": True,
+    "use_google_fonts_cdn": False,
+
+    "topmenu_links": [
+        {
+            "name": "Storefront",
+            "url": "/",
+            "new_window": True,
+        },
+        {
+            "name": "Admin Home",
+            "url": "/admin/",
+        },
+    ],
+
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user-shield",
+        "auth.group": "fas fa-users",
+        "home.product": "fas fa-box-open",
+        "home.catagory": "fas fa-tags",
+        "home.sellerprofile": "fas fa-store",
+        "home.placedorderxx": "fas fa-shopping-cart",
+    },
+
+    "default_icon_parents": "fas fa-folder-open",
+    "default_icon_children": "fas fa-circle",
+
+    "order_with_respect_to": [
+        "home",
+        "auth",
+    ],
+
+    "hide_apps": [],
+    "hide_models": [],
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar": "navbar-dark",
+    "navbar_small_text": False,
+    "no_navbar_border": True,
+
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_flat_style": False,
+
+    "theme": "default",
+    "dark_mode_theme": "darkly",
+
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "success": "btn-success",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+    },
+}
+CRONJOBS = [
+    ('*/1 * * * *', 'home.tasks.update_advertisement_status'),
+]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
