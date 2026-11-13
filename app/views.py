@@ -14,6 +14,10 @@ def login(request):
 
 def register(request):
     return render(request,"register.html")
+def forgotpassword(request):
+    return render(request,"forgotpassword.html")
+
+
 def favviewpage(request):
     return render(request,"favviewpage.html")
 
