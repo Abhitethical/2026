@@ -17,7 +17,7 @@ urlpatterns=[
 
 
 
-    path("contacts",views.contacts, name="contacts"),
+    path("contactus",views.contactus, name="contactus"),
     path("shipping",views.shipping, name="shipping"),
     path("returnpolicy",views.returnpolicy, name="helpcenter"),
     path("privacypolicy",views.helpcenter, name="helpcenter"),
