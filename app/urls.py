@@ -11,5 +11,7 @@ urlpatterns=[
     path("carted",views.login, name="carted"),
     path("orderstatus",views.login, name="orderstatus"),
     path("login",views.login, name="login"),
- 
+
+
+    path("helpcenter",views.helpcenter, name="helpcenter"),
 ]
