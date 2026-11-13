@@ -41,17 +41,21 @@ def helpcenter(request):
 
 def contactus(request):
     return render(request, 'contactus.html')
-    
+
 def shipping(request):
-    return render(request,"shipping.html")
+    return render(request, 'shipping.html')
 def returnpolicy(request):
-    return render(request,"returnpolicy.html")
+    return render(request, 'returnpolicy.html')
+
 def privacypolicy(request):
-    return render(request,"privacypolicy.html")
+    return render(request, 'privacypolicy.html')
+
 def termsconditions(request):
-    return render(request,"termsconditions.html")
+    return render(request, 'termsconditions.html')
 def cookiepolicy(request):
-    return render(request,"cookiepolicy.html")
+    return render(request, 'cookiepolicy.html')
+    
+
 
 
 
