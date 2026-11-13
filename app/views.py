@@ -39,8 +39,8 @@ def helpcenter(request):
 
 
 
-def contacts(request):
-    return render(request,"contacts.html")
+def contactus(request):
+    return render(request,"contactus.html")
 def shipping(request):
     return render(request,"shipping.html")
 def returnpolicy(request):
