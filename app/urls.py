@@ -19,8 +19,8 @@ urlpatterns=[
 
     path("contactus",views.contactus, name="contactus"),
     path("shipping",views.shipping, name="shipping"),
-    path("returnpolicy",views.returnpolicy, name="helpcenter"),
-    path("privacypolicy",views.helpcenter, name="helpcenter"),
+    path("returnpolicy",views.returnpolicy, name="returnpolicy"),
+    path("privacypolicy",views.privacypolicy, name="privacypolicy"),
     path("termsconditions",views.termsconditions, name="termsconditions"),
     path("cookiepolicy",views.cookiepolicy, name="cookiepolicy"),
 ]
