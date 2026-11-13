@@ -40,7 +40,7 @@ def helpcenter(request):
 
 
 def contactus(request):
-    return render(request,"contactus.html")
+    return render(request,'contactus') 
 def shipping(request):
     return render(request,"shipping.html")
 def returnpolicy(request):
