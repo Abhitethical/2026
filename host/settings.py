@@ -119,6 +119,22 @@ USE_I18N = True
 USE_TZ = True
 
 
+STATIC_URL = 'static/'
+
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+MIDEA_ROOT = BASE_DIR /'uploads'    # new add
+MEDIA_URL = '/media/'                # new add
+
+CRISPY_TEMPLATE_PACK ='boostrap4'     # new add
 
 
 
@@ -131,6 +147,22 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'abhit2001eravattoor@gmail.com'
 EMAIL_HOST_PASSWORD = 'amjmqgaysiazclxy'   # ← remove spaces
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+
+
+# settings.py
+SESSION_COOKIE_AGE = 300  # 5 minutes
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Avoid long-lived admin sessions
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = not DEBUG  # HTTPS in production
+CSRF_COOKIE_SECURE = not DEBUG
+
 
 
 # Static files (CSS, JavaScript, Images)
