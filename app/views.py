@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from django import forms
+from app.forms import CustomUserForm
+from . models import *
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
