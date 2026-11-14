@@ -5,6 +5,10 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
+from .forms import CustomUserForm, CustomerRegistrationForm
 
 def home(request):
     return render(request,"index.html")
