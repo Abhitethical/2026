@@ -22,9 +22,44 @@ def forgotpassword(request):
     return render(request,"forgotpassword.html")
 
 
-def register(request):
-    return render(request, 'register.html')
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.db import transaction
 
+from .forms import CustomUserForm, CustomerRegistrationForm
+
+
+def register(request):
+
+    if request.method == "POST":
+
+        user_form = CustomUserForm(request.POST)
+        customer_form = CustomerRegistrationForm(
+            request.POST,
+            request.FILES
+        )
+
+        if user_form.is_valid() and customer_form.is_valid():
+
+            with transaction.atomic():
+
+                user = user_form.save()
+
+                customer = customer_form.save(commit=False)
+                customer.user = user
+                customer.save()
+
+            messages.success(request, "Registration successful!")
+            return redirect("login")
+
+    else:
+        user_form = CustomUserForm()
+        customer_form = CustomerRegistrationForm()
+
+    return render(request, "register.html", {
+        "user_form": user_form,
+        "customer_form": customer_form,
+    })
 
 
 def helpcenter(request):
