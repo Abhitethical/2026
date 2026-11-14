@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from django.http import  JsonResponse
 from django.shortcuts import redirect, render
 from app.forms import CustomUserForm
 from . models import *
