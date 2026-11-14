@@ -16,8 +16,43 @@ def productsearch(request):
     return render(request,"productsearch.html")
 
 
-def login(request):
-    return render(request,"login.html")
+
+def login_page(request):
+
+    if request.user.is_authenticated:
+        return redirect("/")
+
+    if request.method == "POST":
+
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(
+            request,
+            username=username,
+            password=password
+        )
+
+        if user is not None:
+
+            login(request, user)
+
+            customer = CustomerRegistration.objects.get(user=user)
+
+            customer.last_login = user.last_login
+            customer.login_time = timezone.now()
+            customer.is_active = True
+            customer.save()
+
+            messages.success(request, "Logged in Successfully")
+            return redirect("/")
+
+        else:
+            messages.error(request, "Invalid Username or Password")
+            return redirect("/login")
+
+    return render(request, "login.html")
+
 
 def forgotpassword(request):
     return render(request,"forgotpassword.html")
