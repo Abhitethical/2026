@@ -1,8 +1,4 @@
 from django.shortcuts import render
-<<<<<<< HEAD
-
-=======
->>>>>>> 1c59691 (Update complete Django project)
 
 def home(request):
     return render(request,"index.html")
@@ -16,12 +12,28 @@ def productsearch(request):
 def login(request):
     return render(request,"login.html")
 
+def forgotpassword(request):
+    return render(request,"forgotpassword.html")
+
+
+def register(request):
+    return render(request, 'register.html')
 
 
 
 def helpcenter(request):
     return render(request,"helpcenter.html")
-    
+
+def favviewpage(request):
+    return render(request,"favviewpage.html")
+
+def profile(request):
+    return render(request,"profile.html") 
+
+def logout(request):
+    return render(request,"logout.html") 
+
+
 def contactus(request):
     return render(request, 'contactus.html')
 

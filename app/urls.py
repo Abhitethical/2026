@@ -6,9 +6,12 @@ urlpatterns=[
     path("productsearch",views.productsearch, name="productsearch"),
     path("login",views.login, name="login"),
 
+    path("register",views.register, name="register"),
+    path("logout",views.logout, name="logout"),
+
     path("forgotpassword",views.forgotpassword, name="forgotpassword"),
 
-    
+    path("profile",views.profile, name="profile"),
     path("favviewpage",views.favviewpage, name="favviewpage"),
     path("carted",views.login, name="carted"),
     path("orderstatus",views.login, name="orderstatus"),
