@@ -5,28 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 
-from .forms import (
-    CustomUserForm,
-    CustomerRegistrationForm,
-    CustomerRegistrationFormx,
-    CheckoutForm,
-    ProductSearchForm,
-    ForgotPasswordForm,
-    OTPVerifyForm,
-    SellerProfileForm,
-    SellerBankForm,
-    SellerBankFormxx,
-    ReturnRequestForm,
-    SellerRefundForm,
-    AdvertisementForm,
-    AdvertisementRenewalForm,
-    AdminRenewalUpdateForm,
-    AdminAdvertisementEditForm,
-    AdminAdvertisementUpdateForm,
-    AdvertisementxAdmineditForm,
-    SellerForgotPasswordForm,
-    SellerResetPasswordForm,
-)
+
 
 def home(request):
     return render(request,"index.html")
