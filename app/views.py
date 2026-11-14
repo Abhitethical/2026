@@ -7,11 +7,9 @@ from django.contrib.auth import login, logout, authenticate
 
 from app.forms import CustomUserForm,CustomerRegistrationForm
 
-<<<<<<< HEAD
 from app.forms import CustomUserForm, CustomerRegistrationForm
-=======
+
 from django.db import transaction
->>>>>>> 6e00abe (Update Django views and forms)
 
 def home(request):
     return render(request,"index.html")
@@ -29,11 +27,11 @@ def forgotpassword(request):
     return render(request,"forgotpassword.html")
 
 
-<<<<<<< HEAD
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import transaction
-=======
+
 
 def register(request):
 
@@ -66,7 +64,6 @@ def register(request):
         "user_form": user_form,
         "customer_form": customer_form,
     })
->>>>>>> 6e00abe (Update Django views and forms)
 
 
 
