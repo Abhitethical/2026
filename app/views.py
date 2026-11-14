@@ -1,10 +1,5 @@
 from django.shortcuts import render
-from django.shortcuts import redirect, render
-from django.http import  JsonResponse
-from . models import *
-from django.contrib import messages
-from django.contrib.auth import authenticate,login,logout
-import json
+
 
 def home(request):
     return render(request,"index.html")
