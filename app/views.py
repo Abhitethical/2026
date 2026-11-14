@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from app.forms import CustomUserForm
 from . models import *
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
