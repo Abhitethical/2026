@@ -1,5 +1,8 @@
 from django.shortcuts import render
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1c59691 (Update complete Django project)
 
 def home(request):
     return render(request,"index.html")
