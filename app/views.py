@@ -17,6 +17,12 @@ def productsearch(request):
 
 
 
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from .models import CustomerRegistration
+
 def login_page(request):
 
     if request.user.is_authenticated:
@@ -37,12 +43,12 @@ def login_page(request):
 
             login(request, user)
 
-            customer = CustomerRegistration.objects.get(user=user)
+            customer = CustomerRegistration.objects.filter(user=user).first()
 
-            customer.last_login = user.last_login
-            customer.login_time = timezone.now()
-            customer.is_active = True
-            customer.save()
+            if customer:
+                customer.login_time = timezone.now()
+                customer.is_active = True
+                customer.save()
 
             messages.success(request, "Logged in Successfully")
             return redirect("/")
