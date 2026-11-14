@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 
-
+from .forms import CustomUserForm
 
 from django.db import transaction
 
