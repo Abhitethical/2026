@@ -5,7 +5,6 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 
-from app.forms import CustomUserForm,CustomerRegistrationForm
 
 from app.forms import CustomUserForm, CustomerRegistrationForm
 
