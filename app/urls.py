@@ -6,7 +6,6 @@ urlpatterns=[
     path("productsearch",views.productsearch, name="productsearch"),
     path("login",views.login, name="login"),
 
-    path("register",views.register, name="register"),
     path("forgotpassword",views.forgotpassword, name="forgotpassword"),
 
     
