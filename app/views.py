@@ -1,12 +1,10 @@
+from .forms import CustomUserForm,CustomerRegistrationForm
 from django.shortcuts import render
 from . models import *
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
-
-from .forms import CustomUserForm
-
 from django.db import transaction
 
 def home(request):
