@@ -1,4 +1,4 @@
-from .forms import CustomUserForm,CustomerRegistrationForm
+from app.forms import CustomUserForm,CustomerRegistrationForm
 from django.shortcuts import render
 from . models import *
 from django.shortcuts import render, redirect, get_object_or_404
