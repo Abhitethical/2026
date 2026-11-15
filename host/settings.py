@@ -91,7 +91,7 @@ DATABASES = {
         'NAME': 'shopkart_db',
         'USER': 'postgres',
         'PASSWORD':'Abhit@8080',
-        'HOST': '127.0.0.1',
+        'HOST': '',
         'PORT': '5432',
     }
 }
