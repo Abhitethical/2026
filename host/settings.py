@@ -85,6 +85,16 @@ WSGI_APPLICATION = 'host.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'shopkart_db',
+        'USER': 'postgres',
+        'PASSWORD':'Abhit@8080',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}
 
 
 
