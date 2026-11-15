@@ -7,6 +7,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.db import transaction
 from .forms import CustomUserForm
 from .forms import CustomerRegistrationForm
+
 def home(request):
     return render(request,"index.html")
 
@@ -14,6 +15,7 @@ def home(request):
 
 def productsearch(request):
     return render(request,"productsearch.html")
+
 
 
 
@@ -58,7 +60,6 @@ def login_page(request):
             return redirect("/login")
 
     return render(request, "login.html")
-
 
 def forgotpassword(request):
     return render(request,"forgotpassword.html")

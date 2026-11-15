@@ -33,4 +33,8 @@ from django.contrib.auth.models import User
 class CustomerRegistrationForm(forms.ModelForm):
     class Meta:
         model = User
+<<<<<<< HEAD
         fields = ['username', 'email', 'password']
+=======
+        fields = ['username', 'email', 'password']
+>>>>>>> 3583043 (Updated Django views and forms)
