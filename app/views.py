@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 from django.db import transaction
 from .forms import CustomUserForm
-from .forms import CustomerRegistrationForm
 
 def home(request):
     return render(request,"index.html")
@@ -19,123 +18,45 @@ def productsearch(request):
 
 
 
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.utils import timezone
-from .models import CustomerRegistration
-
 def login_page(request):
-
-    if request.user.is_authenticated:
+  if request.user.is_authenticated:
+    return redirect("/")
+  else:
+    if request.method=='POST':
+      name=request.POST.get('username')
+      pwd=request.POST.get('password')
+      user=authenticate(request,username=name,password=pwd)
+      if user is not None:
+        login(request,user)
+        messages.success(request,"Logged in Successfully")
         return redirect("/")
+      else:
+        messages.error(request,"Invalid User Name or Password")
+        return redirect("/login")
+    return render(request,"login.html")
 
-    if request.method == "POST":
+def register(request):
+  form=CustomUserForm()
+  if request.method=='POST':
+    form=CustomUserForm(request.POST)
+    if form.is_valid():
+      form.save()
+      messages.success(request,"Registration Success You can Login Now..!")
+      return redirect('/login')
+  return render(request,"register.html",{'form':form})
 
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+def logout_page(request):
+  if request.user.is_authenticated:
+    logout(request)
+    messages.success(request,"Logged out Successfully")
+  return redirect("/")
 
-        user = authenticate(
-            request,
-            username=username,
-            password=password
-        )
 
-        if user is not None:
-
-            login(request, user)
-
-            customer = CustomerRegistration.objects.filter(user=user).first()
-
-            if customer:
-                customer.login_time = timezone.now()
-                customer.is_active = True
-                customer.save()
-
-            messages.success(request, "Logged in Successfully")
-            return redirect("/")
-
-        else:
-            messages.error(request, "Invalid Username or Password")
-            return redirect("/login")
-
-    return render(request, "login.html")
 
 def forgotpassword(request):
     return render(request,"forgotpassword.html")
 
 
-
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.db import transaction
-
-
-def register(request):
-
-    if request.method == "POST":
-
-        user_form = CustomUserForm(request.POST)
-        customer_form = CustomerRegistrationForm(
-            request.POST,
-            request.FILES
-        )
-
-        if user_form.is_valid() and customer_form.is_valid():
-
-            with transaction.atomic():
-
-                user = user_form.save()
-
-                customer = customer_form.save(commit=False)
-                customer.user = user
-                customer.save()
-
-            messages.success(request, "Registration successful!")
-            return redirect("login")
-
-    else:
-        user_form = CustomUserForm()
-        customer_form = CustomerRegistrationForm()
-
-    return render(request, "register.html", {
-        "user_form": user_form,
-        "customer_form": customer_form,
-    })
-
-
-
-def register(request):
-
-    if request.method == "POST":
-
-        user_form = CustomUserForm(request.POST)
-        customer_form = CustomerRegistrationForm(
-            request.POST,
-            request.FILES
-        )
-
-        if user_form.is_valid() and customer_form.is_valid():
-
-            with transaction.atomic():
-
-                user = user_form.save()
-
-                customer = customer_form.save(commit=False)
-                customer.user = user
-                customer.save()
-
-            messages.success(request, "Registration successful!")
-            return redirect("login")
-
-    else:
-        user_form = CustomUserForm()
-        customer_form = CustomerRegistrationForm()
-
-    return render(request, "register.html", {
-        "user_form": user_form,
-        "customer_form": customer_form,
-    })
 
 
 def helpcenter(request):
@@ -146,9 +67,6 @@ def favviewpage(request):
 
 def profile(request):
     return render(request,"profile.html") 
-
-def logout(request):
-    return render(request,"logout.html") 
 
 
 def contactus(request):
