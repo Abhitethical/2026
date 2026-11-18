@@ -85,14 +85,15 @@ WSGI_APPLICATION = 'host.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-import os
-import dj_database_url
 
-# DATABASE CONFIGURATION
+import os
+from django.core.exceptions import ImproperlyConfigured
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
+    import dj_database_url
+
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -100,8 +101,13 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
+
+elif os.environ.get("VERCEL"):
+    raise ImproperlyConfigured(
+        "DATABASE_URL is missing from Vercel Environment Variables"
+    )
+
 else:
-    # Local development fallback
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
