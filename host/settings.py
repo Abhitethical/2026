@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,6 +25,7 @@ SECRET_KEY = 'django-insecure-sy(8kk@^wu!2gu$+=ne6%_loqgr_t-7jjl2=&(i--9gkv22885
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
@@ -85,12 +87,26 @@ WSGI_APPLICATION = 'host.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+
+
+# ==================================
+# XAMPP MYSQL DATABASE CONFIGURATION
+# ==================================
+
+import dj_database_url
+import os
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=0,
+        ssl_require=True,
+    )
 }
+
 
 
 # Password validation
