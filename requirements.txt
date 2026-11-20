@@ -2,4 +2,8 @@ asgiref==3.8.1
 Django==5.1.1
 sqlparse==0.5.1
 dj-database-url
+<<<<<<< HEAD
 psycopg[binary]
+=======
+psycopg[binary]
+>>>>>>> 161b9d5af04b23d9319293b356698b11fca982bb
