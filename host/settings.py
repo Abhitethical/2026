@@ -40,6 +40,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,7 +50,25 @@ INSTALLED_APPS = [
     'app'
 ]
 
-
+UNFOLD = {
+    "SITE_TITLE": "2026 Admin Dashboard",
+    "SITE_HEADER": "2026 Administration",
+    "SITE_SUBHEADER": "Management Portal",
+    "SITE_SYMBOL": "dashboard",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "DASHBOARD_CALLBACK": None,
+    "THEME": "dark",
+    "COLORS": {
+        "primary": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+        },
+    },
+}
 
 
 MIDDLEWARE = [

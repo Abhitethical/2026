@@ -5,3 +5,4 @@ dj-database-url
 psycopg[binary]
 psycopg[binary]
 whitenoise
+django-unfold
