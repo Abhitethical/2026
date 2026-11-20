@@ -8,10 +8,7 @@ urlpatterns=[
 
     path("register",views.register, name="register"),
     path('logout',views.logout_page,name="logout"),
-<<<<<<< HEAD
 
-=======
->>>>>>> 7c9ec20 (Updated Django views, URLs and forms)
     path("forgotpassword",views.forgotpassword, name="forgotpassword"),
 
     path("profile",views.profile, name="profile"),
