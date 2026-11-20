@@ -10,4 +10,8 @@ class CustomUserForm(UserCreationForm):
   password2=forms.CharField(widget=forms.PasswordInput(attrs={'class':'form-control','placeholder':'Enter Confirm Password'}))
   class Meta:
     model=User
+<<<<<<< HEAD
     fields=['username','email','password1','password2']
+=======
+    fields=['username','email','password1','password2']
+>>>>>>> 7c9ec20 (Updated Django views, URLs and forms)
