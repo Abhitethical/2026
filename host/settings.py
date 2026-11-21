@@ -11,7 +11,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,8 +46,6 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'cloudinary',
-    'cloudinary_storage',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,29 +55,21 @@ INSTALLED_APPS = [
     'app'
 
 
+
 ]
 
-import os
-
-CLOUDINARY_STORAGE = {
-
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', 'ezrffk30'),
-
-    'CLOUD_NAME': os.environ.get('ezrffk30'),
-    'API_KEY': os.environ.get('392959697196615'),
-    'API_SECRET': os.environ.get('KhZgASEORpm5C_qy0t4YymMIrQY'),
-}
-
-
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STORAGES = {
-    'default': {
-        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+    "default": {
+        "BACKEND": "app.storage.VercelBlobStorage",
     },
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+MEDIA_URL = "/media/"
 
 UNFOLD = {
     "SITE_TITLE": "2026 Admin Dashboard",
