@@ -52,7 +52,15 @@ INSTALLED_APPS = [
 
  
 ]
+import os
+import cloudinary
 
+cloudinary.config(
+    cloud_name=os.getenv("ezrffk30"),
+    api_key=os.getenv("392959697196615"),
+    api_secret=os.getenv("KhZgASEORpm5C_qy0t4YymMIrQY"),
+    secure=True
+)
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('ezrffk30'),
