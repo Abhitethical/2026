@@ -7,3 +7,8 @@ psycopg[binary]
 whitenoise
 django-unfold
 Pillow>=10.4.0
+cloudinary
+django-cloudinary-storage
+Pillow
+cloudinary
+django-cloudinary-storage
