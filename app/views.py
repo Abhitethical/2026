@@ -227,6 +227,212 @@ def product_details(request, cname, pname):
     )
 
 
+from django.shortcuts import render, redirect
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Cart, Placedorderxx, Product  # Make sure Product model is imported
+from .forms import CheckoutForm
+from django.db import transaction
+
+
+
+
+from django.db import transaction
+from decimal import Decimal
+from django.utils import timezone
+from django.shortcuts import render, redirect
+
+GST_RATE = Decimal("0.03")
+
+
+def checkouts(request):
+    user = request.user
+    cart_items = Cart.objects.filter(user=user)
+
+    if not cart_items.exists():
+        return redirect("home")
+
+    def calculate_totals(cart_items, discount=Decimal("0")):
+        net = Decimal("0")
+
+        for item in cart_items:
+            net += Decimal(item.product.selling_price) * item.product_qty
+
+        gst = net * GST_RATE
+        grand = net + gst - discount
+
+        return net, gst, max(grand, Decimal("0"))
+
+    if request.method == "POST":
+        step = request.POST.get("step")
+
+        # ================= STEP 1 =================
+        if step == "1":
+            form = CheckoutForm(request.POST)
+
+            if form.is_valid():
+                request.session["checkout_data"] = form.cleaned_data
+
+                net, gst, grand = calculate_totals(cart_items)
+
+                return render(request, "checkout_confirm.html", {
+                    "form_data": form.cleaned_data,
+                    "cart_items": cart_items,
+                    "net_total": net,
+                    "gst_amount": gst,
+                    "grand_total": grand,
+                    "discount": Decimal("0"),
+                    "coupon_message": ""
+                })
+
+            return render(request, "checkoutview.html", {"form": form})
+
+        # ================= COUPON STEP =================
+        elif step == "coupon":
+            coupon_code = request.POST.get("coupon_code", "").strip()
+
+            discount = Decimal("0")
+            message = "Invalid Coupon"
+            applied = False
+
+            today = timezone.now().date()
+
+            # one-time use check
+            already_used = Placedorderxx.objects.filter(
+                user=user,
+                coupon_code=coupon_code,
+                coupon_discount__gt=0
+            ).exists()
+
+            if already_used:
+                net, gst, grand = calculate_totals(cart_items)
+
+                return render(request, "checkout_confirm.html", {
+                    "form_data": request.session.get("checkout_data"),
+                    "cart_items": cart_items,
+                    "net_total": net,
+                    "gst_amount": gst,
+                    "grand_total": grand,
+                    "discount": Decimal("0"),
+                    "coupon_message": "This coupon can be used only once",
+                    "applied_coupon": ""
+                })
+
+            # check coupon
+            for item in cart_items:
+                product = item.product
+
+                if product.coupon_code == coupon_code and product.coupon_active:
+
+                    # ================= EXPIRED CHECK =================
+                    if product.coupon_expiry and product.coupon_expiry < today:
+                        message = "❌ This coupon has expired"
+                        applied = False
+                        break
+
+                    # ================= VALID COUPON =================
+                    if product.coupon_discount > 0:
+                        discount = Decimal(str(product.coupon_discount))
+                        message = f"Coupon Applied: -₹{discount}"
+                        applied = True
+                        break
+
+            request.session["applied_coupon"] = coupon_code if applied else ""
+            request.session["applied_discount"] = str(discount if applied else 0)
+
+            net, gst, grand = calculate_totals(cart_items, discount if applied else 0)
+
+            return render(request, "checkout_confirm.html", {
+                "form_data": request.session.get("checkout_data"),
+                "cart_items": cart_items,
+                "net_total": net,
+                "gst_amount": gst,
+                "grand_total": grand,
+                "discount": discount if applied else Decimal("0"),
+                "coupon_message": message,
+                "applied_coupon": coupon_code if applied else ""
+            })
+
+        # ================= STEP 2 =================
+        elif step == "2":
+            checkout_data = request.session.get("checkout_data")
+            if not checkout_data:
+                return redirect("checkouts")
+
+            discount = Decimal(request.session.get("applied_discount", "0"))
+            coupon_code = request.session.get("applied_coupon", "")
+
+            save_coupon = coupon_code if discount > 0 else ""
+            save_discount = discount if discount > 0 else Decimal("0")
+
+            try:
+                with transaction.atomic():
+
+                    net, gst, grand = calculate_totals(cart_items, save_discount)
+
+                    for item in cart_items:
+                        product = item.product
+
+                        if item.product_qty > product.quantity:
+                            return render(request, "checkout_confirm.html", {
+                                "error": f"Not enough stock for {product.name}",
+                                "form_data": checkout_data,
+                                "cart_items": cart_items
+                            })
+
+                        # final expiry safety check
+                        today = timezone.now().date()
+                        if product.coupon_expiry and product.coupon_expiry < today:
+                            save_coupon = ""
+                            save_discount = Decimal("0")
+
+                        Placedorderxx.objects.create(
+                            user=user,
+                            product=product,
+                            product_name=product.name,
+                            product_image=product.product_image,
+                            product_price=product.selling_price,
+                            selling_price=product.original_price,
+                            vendor=product.vendor,
+                            quantity=item.product_qty,
+
+                            name=checkout_data.get("full_name"),
+                            address=checkout_data.get("address_line1"),
+                            city=checkout_data.get("city"),
+                            state=checkout_data.get("state"),
+                            phone=checkout_data.get("phone"),
+                            postal_code=checkout_data.get("postal_code"),
+
+                            coupon_code=save_coupon,
+                            coupon_discount=save_discount,
+
+                            total_amount=grand
+                        )
+
+                        product.quantity -= item.product_qty
+                        product.save()
+
+                    cart_items.delete()
+
+                    request.session.pop("checkout_data", None)
+                    request.session.pop("applied_coupon", None)
+                    request.session.pop("applied_discount", None)
+
+                    return redirect("home")
+
+            except Exception as e:
+                return render(request, "checkout_confirm.html", {
+                    "error": str(e),
+                    "cart_items": cart_items,
+                    "form_data": checkout_data
+                })
+
+    return render(request, "checkoutview.html", {
+        "form": CheckoutForm()
+    })
+
+
+
 
 
 
