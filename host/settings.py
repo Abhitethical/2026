@@ -53,27 +53,14 @@ INSTALLED_APPS = [
  
 ]
 
-import os
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-
-CLOUDINARY_CLOUD_NAME = os.environ.get("ezrffk30")
-CLOUDINARY_API_KEY = os.environ.get("392959697196615")
-CLOUDINARY_API_SECRET = os.environ.get("KhZgASEORpm5C_qy0t4YymMIrQY")
-
-cloudinary.config(
-    cloud_name=ezrffk30,
-    api_key=392959697196615,
-    api_secret=KhZgASEORpm5C_qy0t4YymMIrQY,
-    secure=True
-)
-
 CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": ezrffk30,
-    "API_KEY": 392959697196615,
-    "API_SECRET": KhZgASEORpm5C_qy0t4YymMIrQY,
+
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', 'ezrffk30'),
+    'CLOUD_NAME': os.environ.get('ezrffk30'),
+    'API_KEY': os.environ.get('392959697196615'),
+    'API_SECRET': os.environ.get('KhZgASEORpm5C_qy0t4YymMIrQY'),
 }
+
 
 STORAGES = {
     'default': {
