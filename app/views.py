@@ -629,6 +629,16 @@ def create_return_request(request, order_id):
     )
 
 
+@login_required
+def customer_return_list(request):
+
+    returns = ReturnRequested.objects.filter(
+        user=request.user
+    ).order_by('-id')
+
+    return render(request, "customer_return_list.html", {
+        "returns": returns
+    })
 
 
 
