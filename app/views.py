@@ -642,6 +642,57 @@ def customer_return_list(request):
 
 
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import ReturnRequested
+
+
+@login_required
+def return_detail(request, pk):
+
+    return_request = get_object_or_404(
+        ReturnRequested,
+        id=pk,
+        user=request.user
+    )
+
+    if request.method == "POST":
+
+        if return_request.status == "pickup_scheduled":
+
+            return_request.pickup_address = request.POST.get('pickup_address')
+            return_request.pickup_date = request.POST.get('pickup_date')
+            return_request.pickup_time_slot = request.POST.get('pickup_time_slot')
+            return_request.pickup_reason = request.POST.get('pickup_reason')
+
+            return_request.save()
+
+        else:
+
+            return_request.resubmit_reason = request.POST.get("resubmit_reason")
+            return_request.resubmit_description = request.POST.get("resubmit_description")
+
+            # image upload
+            if request.FILES.get("resubmit_image"):
+                return_request.resubmit_image = request.FILES["resubmit_image"]
+
+            # video upload
+            if request.FILES.get("resubmit_video"):
+                return_request.resubmit_video = request.FILES["resubmit_video"]
+
+            # change status
+            return_request.status = "Resubmitted"
+
+            return_request.save()
+
+        return redirect("return_detail", pk=return_request.id)
+
+    return render(request, "return_detail.html", {
+        "return_request": return_request
+    })
+
+
+
 
 
 
