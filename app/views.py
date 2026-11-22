@@ -433,6 +433,19 @@ def checkouts(request):
 
 
 
+from .models import OrderPlacededx  # Adjust model name if needed
+
+def orderdetail(request, pk):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    order = get_object_or_404(OrderPlacededx, pk=pk, user=request.user)
+
+    if order.status == 'Pending':
+        messages.warning(request, "Invoice cannot be downloaded until the order is complete.")
+
+    return render(request, 'orderdetail.html', {'order': order})
+
 
 
 
