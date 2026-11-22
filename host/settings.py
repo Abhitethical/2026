@@ -58,14 +58,14 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
-CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
-CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
+CLOUDINARY_CLOUD_NAME = os.environ.get("ezrffk30")
+CLOUDINARY_API_KEY = os.environ.get("392959697196615")
+CLOUDINARY_API_SECRET = os.environ.get("KhZgASEORpm5C_qy0t4YymMIrQY")
 
 cloudinary.config(
     cloud_name=ezrffk30,
     api_key=392959697196615,
-    api_secret=CLOUDINARY_API_SECRET,
+    api_secret=KhZgASEORpm5C_qy0t4YymMIrQY,
     secure=True
 )
 
