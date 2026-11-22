@@ -459,6 +459,49 @@ def order_detail(request, pk):
 
 
 
+# views.py
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Review, Placedorderxx
+
+def add_review(request, order_id):
+    order = get_object_or_404(Placedorderxx, id=order_id, user=request.user)
+
+    # ✅ Only allow if completed
+    if order.status != 'completed':
+        messages.error(request, "You can review only after order is completed")
+        return redirect('orderdetail', pk=order_id)
+
+    # ✅ Prevent duplicate review
+    if Review.objects.filter(order=order).exists():
+        messages.error(request, "You already reviewed this product")
+        return redirect('orderdetail', pk=order_id)
+
+    # ✅ IMPORTANT FIX
+    if not order.product:
+        messages.error(request, "Product not available for this order")
+        return redirect('orderdetail', pk=order_id)
+
+    if request.method == "POST":
+        rating = request.POST.get('rating')
+        comment = request.POST.get('comment')
+        image = request.FILES.get('image')
+        video = request.FILES.get('video')
+
+        Review.objects.create(
+            user=request.user,
+            product=order.product,   # ✅ FIXED HERE
+            order=order,
+            rating=rating,
+            comment=comment,
+            image=image,
+            video=video
+        )
+
+        messages.success(request, "Review submitted successfully")
+        return redirect('orderdetail', pk=order_id)
+    
+
 
 
 
