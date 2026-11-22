@@ -19,7 +19,7 @@ urlpatterns=[
     path('checkouts/', views.checkouts, name='checkoutview'),
     path('order/<int:pk>/', views.order_detail, name='orderdetail'),  
     path('add-review/<int:order_id>/', views.add_review, name='add_review'),
-
+    path("return/<int:order_id>/", views.create_return_request, name="return_request"),
 
 
 
