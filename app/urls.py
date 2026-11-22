@@ -21,6 +21,8 @@ urlpatterns=[
     path('add-review/<int:order_id>/', views.add_review, name='add_review'),
     path("return/<int:order_id>/", views.create_return_request, name="return_request"),
     path('my-returns/',views.customer_return_list,name='customer_return_list'),
+    path('return-detail/<int:pk>/',views.return_detail, name='return_detail'),
+
 
 
 
