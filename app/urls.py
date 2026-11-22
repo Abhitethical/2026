@@ -16,6 +16,8 @@ urlpatterns=[
     path('collections/<str:name>',views.collectionsview,name="collections"),
     path('collections/<str:cname>/<str:pname>',views.product_details,name="product_details"),
     path('addtocart',views.add_to_cart,name="addtocart"),
+    path('checkouts/', views.checkouts, name='checkoutview'),
+
 
 
     path("productsearch",views.productsearch, name="productsearch"),
