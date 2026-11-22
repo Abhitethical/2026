@@ -148,3 +148,14 @@ class CheckoutForm(forms.Form):
             raise ValidationError("Phone number must be exactly 10 digits.")
         return phone
 
+
+from django import forms
+from .models import ReturnRequested
+
+class ReturnRequestForm(forms.ModelForm):
+    class Meta:
+        model = ReturnRequested
+        fields = ["reason", "description", "image", "video"]
+
+
+
