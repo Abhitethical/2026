@@ -53,14 +53,26 @@ INSTALLED_APPS = [
  
 ]
 
-CLOUDINARY_STORAGE = {
 
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', 'ezrffk30'),
+
+
+import os
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('ezrffk30'),
     'API_KEY': os.environ.get('392959697196615'),
     'API_SECRET': os.environ.get('KhZgASEORpm5C_qy0t4YymMIrQY'),
 }
 
+cloudinary.config(
+    cloud_name=CLOUDINARY_STORAGE['ezrffk30'],
+    api_key=CLOUDINARY_STORAGE['392959697196615'],
+    api_secret=CLOUDINARY_STORAGE['KhZgASEORpm5C_qy0t4YymMIrQY'],
+    secure=True
+)
 
 STORAGES = {
     'default': {
@@ -70,6 +82,10 @@ STORAGES = {
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
     },
 }
+
+
+
+
 
 
 UNFOLD = {
