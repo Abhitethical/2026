@@ -503,7 +503,130 @@ def add_review(request, order_id):
     
 
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
+from .forms import ReturnRequestForm
+from .models import ReturnRequested, Placedorderxx
+
+
+@login_required
+def create_return_request(request, order_id):
+
+    order = get_object_or_404(
+        Placedorderxx,
+        id=order_id,
+        user=request.user
+    )
+
+
+    # prevent duplicate return
+
+    already_exists = ReturnRequested.objects.filter(
+        order=order
+    ).exists()
+
+
+    if already_exists:
+        messages.warning(
+            request,
+            "Return request already submitted."
+        )
+
+        return redirect(
+            "customer_return_list"
+        )
+
+
+
+    if request.method == "POST":
+
+        form = ReturnRequestForm(
+            request.POST,
+            request.FILES
+        )
+
+
+        if form.is_valid():
+
+            return_obj = form.save(
+                commit=False
+            )
+
+
+            return_obj.order = order
+
+            return_obj.user = request.user
+
+
+            # IMPORTANT
+            # seller ownership
+
+            return_obj.vendor = order.vendor
+
+
+
+            # product details
+
+            return_obj.product_name = order.product_name
+
+            return_obj.product_image = order.product_image
+
+            return_obj.selling_price = order.selling_price
+
+            return_obj.quantity = order.quantity
+
+
+
+            # customer details
+
+            return_obj.name = order.name
+
+            return_obj.address = order.address
+
+            return_obj.phone = order.phone
+
+            return_obj.postal_code = order.postal_code
+
+            return_obj.city = order.city 
+
+            return_obj.coupon_discount = order.coupon_discount
+
+            return_obj.city = order.city
+
+            return_obj.status = "requested"
+
+
+            return_obj.save()
+
+
+
+            messages.success(
+                request,
+                "Return request submitted successfully."
+            )
+
+
+            return redirect(
+                "customer_return_list"
+            )
+
+
+    else:
+
+        form = ReturnRequestForm()
+
+
+
+    return render(
+        request,
+        "return_form.html",
+        {
+            "form":form,
+            "order":order
+        }
+    )
 
 
 
