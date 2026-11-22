@@ -1596,7 +1596,7 @@
                     <td>
 
                         <a
-                            href="#"
+                            href="{% url 'orderdetail' order.id %}"
                             class="sk-action sk-view"
                         >
 
@@ -1616,7 +1616,7 @@
                         {% if order.status == "completed" %}
 
                         <a
-                            href="{% url 'invoice' order.id %}"
+                            href="#"
                             class="sk-action sk-invoice"
                             target="_blank"
                             rel="noopener"
