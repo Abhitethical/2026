@@ -433,19 +433,28 @@ def checkouts(request):
 
 
 
-from .models import OrderPlacededx  # Adjust model name if needed
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
+from datetime import timedelta
 
-def orderdetail(request, pk):
-    if not request.user.is_authenticated:
-        return redirect('login')
+def order_detail(request, pk):
+    order = get_object_or_404(Placedorderxx, id=pk, user=request.user)
 
-    order = get_object_or_404(OrderPlacededx, pk=pk, user=request.user)
+    # Convert UTC → Local Time
+    order.created_at = timezone.localtime(order.created_at)
 
-    if order.status == 'Pending':
-        messages.warning(request, "Invoice cannot be downloaded until the order is complete.")
+    # ✅ Return logic
+    can_return = False
+    if order.status == "Completed" and order.delivered_at:
+        delivered_local = timezone.localtime(order.delivered_at)
 
-    return render(request, 'orderdetail.html', {'order': order})
+        if timezone.now() <= delivered_local + timedelta(days=7):
+            can_return = True
 
+    return render(request, "order_detail.html", {
+        "order": order,
+        "can_return": can_return
+    })
 
 
 
