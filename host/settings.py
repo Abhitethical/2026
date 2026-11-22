@@ -53,39 +53,6 @@ INSTALLED_APPS = [
  
 ]
 
-
-
-
-
-import os
-import cloudinary
-
-
-
-cloudinary.config(
-    cloud_name=CLOUDINARY_STORAGE['ezrffk30'],
-    api_key=CLOUDINARY_STORAGE['392959697196615'],
-    api_secret=CLOUDINARY_STORAGE['KhZgASEORpm5C_qy0t4YymMIrQY'],
-    secure=True
-)
-
-STORAGES = {
-    'default': {
-        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
-    },
-}
-
-MEDIA_URL = '/media/'
-
-
-
-
-
-
-
 UNFOLD = {
     "SITE_TITLE": "2026 Admin Dashboard",
     "SITE_HEADER": "2026 Administration",
