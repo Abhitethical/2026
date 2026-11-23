@@ -2109,3 +2109,54 @@ class TrafficSource(models.Model):
     medium = models.CharField(max_length=200, blank=True)
     campaign = models.CharField(max_length=200, blank=True)
     landing_url = models.CharField(max_length=1000, blank=True)
+
+
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class PasswordResetToken(models.Model):
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    token = models.CharField(
+        max_length=255,
+        unique=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    is_used = models.BooleanField(
+        default=False
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.user.email
+
+
+class PasswordResetLimit(models.Model):
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    reset_date = models.DateField()
+
+    reset_count = models.PositiveIntegerField(
+        default=0
+    )
+
+    class Meta:
+        unique_together = ('user', 'reset_date')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.reset_count}"
