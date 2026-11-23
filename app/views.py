@@ -729,7 +729,7 @@ def forgot_password(request):
 
             return render(
                 request,
-                'accounts/forgot_password.html',
+                'forgot_password.html',
                 {
                     'error': 'Email address is not registered.'
                 }
