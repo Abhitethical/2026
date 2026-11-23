@@ -799,7 +799,7 @@ If you did not request this, please ignore this email.
 
         return render(
             request,
-            'accounts/forgot_password.html',
+            'forgot_password.html',
             {
                 'success': 'Password reset link has been sent to your email.'
             }
@@ -826,7 +826,7 @@ def reset_password(request, token):
 
         return render(
             request,
-            'accounts/reset_password.html',
+            'reset_password.html',
             {
                 'error': 'This password reset link is expired or invalid.'
             }
@@ -842,7 +842,7 @@ def reset_password(request, token):
 
         return render(
             request,
-            'accounts/reset_password.html',
+            'reset_password.html',
             {
                 'error': 'This password reset link is expired or invalid.'
             }
@@ -1039,8 +1039,6 @@ def productsearch(request):
     return render(request,"productsearch.html")
 
 
-def forgotpassword(request):
-    return render(request,"forgotpassword.html")
 
 def helpcenter(request):
     return render(request,"helpcenter.html")
