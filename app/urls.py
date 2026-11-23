@@ -22,6 +22,17 @@ urlpatterns=[
     path("return/<int:order_id>/", views.create_return_request, name="return_request"),
     path('my-returns/',views.customer_return_list,name='customer_return_list'),
     path('return-detail/<int:pk>/',views.return_detail, name='return_detail'),
+    path(
+        'forgot-password/',
+        views.forgot_password,
+        name='forgot_password'
+    ),
+
+    path(
+        'reset-password/<str:token>/',
+        views.reset_password,
+        name='reset_password'
+    ),
 
 
 
