@@ -692,7 +692,285 @@ def return_detail(request, pk):
     })
 
 
+import secrets
 
+from datetime import timedelta
+
+from django.shortcuts import render, redirect, get_object_or_404
+
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+from django.utils import timezone
+
+from django.db import transaction
+
+from .models import PasswordResetToken, PasswordResetLimit
+
+
+# ---------------------------------------
+# FORGOT PASSWORD
+# ---------------------------------------
+
+def forgot_password(request):
+
+    if request.method == "POST":
+
+        email = request.POST.get('email', '').strip()
+
+        user = User.objects.filter(
+            email__iexact=email
+        ).first()
+
+        if not user:
+
+            return render(
+                request,
+                'accounts/forgot_password.html',
+                {
+                    'error': 'Email address is not registered.'
+                }
+            )
+
+        today = timezone.localdate()
+
+        # Check daily reset limit
+        reset_limit = PasswordResetLimit.objects.filter(
+            user=user,
+            reset_date=today
+        ).first()
+
+        if reset_limit and reset_limit.reset_count >= 3:
+
+            return render(
+                request,
+                'accounts/forgot_password.html',
+                {
+                    'error': 'Daily password reset limit reached. Try again tomorrow.'
+                }
+            )
+
+        # Invalidate previously issued unused tokens
+        PasswordResetToken.objects.filter(
+            user=user,
+            is_used=False
+        ).update(is_used=True)
+
+        # Generate secure token
+        token = secrets.token_urlsafe(32)
+
+        PasswordResetToken.objects.create(
+            user=user,
+            token=token
+        )
+
+        # Generate reset URL
+        reset_link = request.build_absolute_uri(
+            f'/reset-password/{token}/'
+        )
+
+        # Send email
+        subject = 'Password Reset Request'
+
+        message = f"""
+Hello {user.username},
+
+We received a request to reset your password.
+
+Click the link below to reset your password:
+
+{reset_link}
+
+This link expires in 10 minutes.
+
+If you did not request this, please ignore this email.
+"""
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False
+        )
+
+        return render(
+            request,
+            'accounts/forgot_password.html',
+            {
+                'success': 'Password reset link has been sent to your email.'
+            }
+        )
+
+    return render(
+        request,
+        'forgot_password.html'
+    )
+
+
+# ---------------------------------------
+# RESET PASSWORD
+# ---------------------------------------
+
+def reset_password(request, token):
+
+    reset_token = PasswordResetToken.objects.filter(
+        token=token,
+        is_used=False
+    ).select_related('user').first()
+
+    if not reset_token:
+
+        return render(
+            request,
+            'accounts/reset_password.html',
+            {
+                'error': 'This password reset link is expired or invalid.'
+            }
+        )
+
+    # Check 10-minute expiration
+    expiry_time = reset_token.created_at + timedelta(minutes=10)
+
+    if timezone.now() > expiry_time:
+
+        reset_token.is_used = True
+        reset_token.save(update_fields=['is_used'])
+
+        return render(
+            request,
+            'accounts/reset_password.html',
+            {
+                'error': 'This password reset link is expired or invalid.'
+            }
+        )
+
+    if request.method == "POST":
+
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if not password or not confirm_password:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Please enter both passwords.'
+                }
+            )
+
+        if password != confirm_password:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Passwords do not match.'
+                }
+            )
+
+        if len(password) < 8:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Password must contain at least 8 characters.'
+                }
+            )
+
+        # Atomically check token and daily limit
+        with transaction.atomic():
+
+            locked_token = PasswordResetToken.objects.select_for_update().filter(
+                pk=reset_token.pk,
+                is_used=False
+            ).first()
+
+            if not locked_token:
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'This password reset link is expired or invalid.'
+                    }
+                )
+
+            # Check expiration again
+            if timezone.now() > locked_token.created_at + timedelta(minutes=10):
+
+                locked_token.is_used = True
+                locked_token.save(update_fields=['is_used'])
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'This password reset link is expired or invalid.'
+                    }
+                )
+
+            user = User.objects.select_for_update().get(
+                pk=locked_token.user_id
+            )
+
+            today = timezone.localdate()
+
+            limit, created = PasswordResetLimit.objects.get_or_create(
+                user=user,
+                reset_date=today
+            )
+
+            # Lock daily limit row
+            limit = PasswordResetLimit.objects.select_for_update().get(
+                pk=limit.pk
+            )
+
+            if limit.reset_count >= 3:
+
+                locked_token.is_used = True
+                locked_token.save(update_fields=['is_used'])
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'Daily password reset limit reached. Try again tomorrow.'
+                    }
+                )
+
+            # Update password
+            user.password = make_password(password)
+
+            user.save(update_fields=['password'])
+
+            # Increase daily successful reset count
+            limit.reset_count += 1
+
+            limit.save(update_fields=['reset_count'])
+
+            # Mark token as used
+            locked_token.is_used = True
+
+            locked_token.save(update_fields=['is_used'])
+
+        return render(
+            request,
+            'password_reset_success.html',
+            {
+                'success': 'Your password has been changed successfully.'
+            }
+        )
+
+    return render(
+        request,
+        'reset_password.html'
+    )
 
 
 
