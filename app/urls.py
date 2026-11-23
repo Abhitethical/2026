@@ -32,7 +32,6 @@ urlpatterns=[
 
     path("productsearch",views.productsearch, name="productsearch"),
     path("profile",views.profile, name="profile"),
-    path("forgotpassword",views.forgotpassword, name="forgotpassword"),
     path("helpcenter",views.helpcenter, name="helpcenter"),
     path("contactus",views.contactus, name="contactus"),
     path("shipping",views.shipping, name="shipping"),
