@@ -97,6 +97,3 @@ admin.site.register(PasswordResetToken)
 
 admin.site.register(PasswordResetLimit)
 
-
-
-admin.site.register(PasswordResetLimit)
