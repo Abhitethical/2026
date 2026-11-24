@@ -39,4 +39,19 @@ urlpatterns=[
     path("privacypolicy",views.privacypolicy, name="privacypolicy"),
     path("termsconditions",views.termsconditions, name="termsconditions"),
     path("cookiepolicy",views.cookiepolicy, name="cookiepolicy"),
+
+
+
+
+
+
+
+
+
+
+
+
+
+  path('seller_login/', views.seller_login, name='seller_login'),
+
 ]
