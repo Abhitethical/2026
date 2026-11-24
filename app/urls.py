@@ -54,6 +54,8 @@ urlpatterns=[
 
   path('seller_login/', views.seller_login, name='seller_login'),
   path('unlock/', views.unlock_username, name='unlock_username'),
+  path("seller/forgot-password/",views.seller_forgot_password,name="seller_forgot_password"),
+
 
 
 ]
