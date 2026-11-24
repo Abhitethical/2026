@@ -1524,10 +1524,7 @@ ShopKart Seller Security Team
         "no-store, no-cache, must-revalidate, max-age=0"
     )
 
-    response["Pragma"] = "no-cache"
-    response["Expires"] = "0"
 
-    return response
 
 
 
