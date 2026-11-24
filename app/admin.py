@@ -93,7 +93,6 @@ admin.site.register(TrafficSource)
 
 admin.site.register(PasswordResetToken)
 
-admin.site.register(PasswordResetToken)
 
 
 admin.site.register(PasswordResetLimit)
