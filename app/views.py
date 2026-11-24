@@ -1144,6 +1144,49 @@ def seller_login(request):
     return render(request, 'saller/seller_login.html')
 
 
+
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+import random
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import SellerProfile
+
+def unlock_username(request):
+    if request.method == "POST":
+        username = request.POST.get('username').strip()
+
+        if not username:
+            messages.error(request, "Please enter username.")
+            return render(request, 'unlock_username.html')
+
+        try:
+            seller = SellerProfile.objects.get(user__username=username)
+
+            # ✅ Check seller status
+            if seller.status != 'approved':
+                messages.error(request, "Seller account is not approved.")
+                return render(request, 'unlock_username.html')
+
+            # ✅ Check if account is locked
+            if seller.is_locked:
+                request.session['unlock_user'] = username
+                messages.success(request, "Account is locked. Please answer security questions.")
+                return redirect('seller_unlock_questions')
+            else:
+                messages.info(request, "Your account is already unlocked.")
+
+        except SellerProfile.DoesNotExist:
+            messages.error(request, "Seller account not found.")
+
+    return render(request, 'saller/unlock_username.html')
+
+
+
+
     
 
 
