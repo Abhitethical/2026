@@ -1187,6 +1187,352 @@ def unlock_username(request):
 
 
 
+import hashlib
+import secrets
+
+from datetime import timedelta
+
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.views.decorators.cache import never_cache
+from django.contrib.auth.models import User
+from django.core.mail import EmailMultiAlternatives
+from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.utils import timezone
+
+from .models import SellerProfile, SellerPasswordResetToken
+from .forms import (
+    SellerForgotPasswordForm,
+    SellerResetPasswordForm,
+)
+
+
+@never_cache
+def seller_forgot_password(request):
+
+    if request.method == "POST":
+
+        form = SellerForgotPasswordForm(request.POST)
+
+        if form.is_valid():
+
+            email = form.cleaned_data["email"].strip().lower()
+
+            seller = (
+                SellerProfile.objects
+                .select_related("user")
+                .filter(email__iexact=email)
+                .first()
+            )
+
+            if not seller:
+
+                seller = (
+                    SellerProfile.objects
+                    .select_related("user")
+                    .filter(user__email__iexact=email)
+                    .first()
+                )
+
+            if not seller:
+
+                messages.error(
+                    request,
+                    "This email address is not registered with a ShopKart Seller account."
+                )
+
+                return redirect(
+                    "seller_forgot_password"
+                )
+
+            SellerPasswordResetToken.objects.filter(
+                seller=seller,
+                used=False
+            ).update(
+                used=True,
+                used_at=timezone.now()
+            )
+
+            raw_token = secrets.token_urlsafe(64)
+
+            token_hash = hashlib.sha512(
+                raw_token.encode("utf-8")
+            ).hexdigest()
+
+            expires_at = (
+                timezone.now()
+                + timedelta(minutes=15)
+            )
+
+            SellerPasswordResetToken.objects.create(
+                seller=seller,
+                token_hash=token_hash,
+                expires_at=expires_at,
+                used=False
+            )
+
+            site_url = getattr(
+                settings,
+                "SITE_URL",
+                "http://127.0.0.1:8000"
+            ).rstrip("/")
+
+            reset_url = (
+                f"{site_url}"
+                f"/seller/password-reset/"
+                f"{raw_token}/"
+            )
+
+            username = seller.user.username
+
+            subject = "ShopKart Seller Password Reset"
+
+            text_message = f"""
+Hello {username},
+
+We received a request to reset your ShopKart Seller account password.
+
+Click the link below to create a new password:
+
+{reset_url}
+
+This link:
+
+- Expires in 15 minutes
+- Can be used only once
+- Becomes invalid after your password is changed
+- Cannot be reused
+
+If you did not request this password reset, please ignore this email.
+
+Regards,
+ShopKart Seller Security Team
+"""
+
+            html_message = f"""
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>ShopKart Password Reset</title>
+
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    background:#f4f7fb;
+    font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+    max-width:620px;
+    margin:40px auto;
+    background:#ffffff;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 10px 35px rgba(0,0,0,.08);
+">
+
+    <div style="
+        background:#2563eb;
+        color:#ffffff;
+        padding:28px;
+        text-align:center;
+    ">
+
+        <h1 style="margin:0;">
+            ShopKart
+        </h1>
+
+        <p style="margin:8px 0 0;">
+            Seller Account Security
+        </p>
+
+    </div>
+
+    <div style="
+        padding:35px;
+        color:#1f2937;
+    ">
+
+        <h2>
+            Password Reset Request
+        </h2>
+
+        <p>
+            Hello <strong>{username}</strong>,
+        </p>
+
+        <p>
+            We received a request to reset your
+            ShopKart Seller account password.
+        </p>
+
+        <div style="
+            text-align:center;
+            margin:30px 0;
+        ">
+
+            <a
+                href="{reset_url}"
+                style="
+                    display:inline-block;
+                    padding:14px 28px;
+                    background:#2563eb;
+                    color:#ffffff;
+                    text-decoration:none;
+                    border-radius:10px;
+                    font-weight:bold;
+                "
+            >
+                Reset Password
+            </a>
+
+        </div>
+
+        <div style="
+            background:#f8fafc;
+            border-left:4px solid #2563eb;
+            padding:16px;
+            border-radius:8px;
+        ">
+
+            <strong>Security information</strong>
+
+            <ul>
+
+                <li>
+                    Link expires in 15 minutes.
+                </li>
+
+                <li>
+                    Link can be used only once.
+                </li>
+
+                <li>
+                    Link becomes invalid after password change.
+                </li>
+
+                <li>
+                    Do not share this link.
+                </li>
+
+            </ul>
+
+        </div>
+
+        <p style="
+            margin-top:25px;
+            color:#64748b;
+            font-size:14px;
+        ">
+
+            If you did not request this password reset,
+            you can safely ignore this email.
+
+        </p>
+
+    </div>
+
+    <div style="
+        padding:20px;
+        text-align:center;
+        background:#f8fafc;
+        color:#64748b;
+        font-size:13px;
+    ">
+
+        ShopKart Seller Security Team
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
+"""
+
+            # =====================================================
+            # SEND EMAIL
+            # =====================================================
+
+            try:
+
+                email_message = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[email],
+                )
+
+                email_message.attach_alternative(
+                    html_message,
+                    "text/html"
+                )
+
+                email_message.send(
+                    fail_silently=False
+                )
+
+            except Exception:
+
+                messages.error(
+                    request,
+                    "Unable to send the reset email. Please try again later."
+                )
+
+                return redirect(
+                    "seller_forgot_password"
+                )
+
+            # =====================================================
+            # SUCCESS
+            # =====================================================
+
+            messages.success(
+                request,
+                "Your email is registered. A password reset link has been sent to your email."
+            )
+
+            return redirect(
+                "seller_forgot_password"
+            )
+
+    else:
+
+        form = SellerForgotPasswordForm()
+
+    response = render(
+        request,
+        "saller/seller_forgot_password.html",
+        {
+            "form": form
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
+
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+
+    return response
+
+
+
+
+
     
 
 
