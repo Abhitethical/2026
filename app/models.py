@@ -2111,6 +2111,7 @@ class TrafficSource(models.Model):
     landing_url = models.CharField(max_length=1000, blank=True)
 
 
+<<<<<<< HEAD
 
 
 
@@ -2118,6 +2119,8 @@ class TrafficSource(models.Model):
 
 
 
+=======
+>>>>>>> e4195a1507a17b91b85358950771563d5fdeb6ee
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -2166,4 +2169,8 @@ class PasswordResetLimit(models.Model):
         unique_together = ('user', 'reset_date')
 
     def __str__(self):
+<<<<<<< HEAD
         return f"{self.user.email} - {self.reset_count}"
+=======
+        return f"{self.user.email} - {self.reset_count}"
+>>>>>>> e4195a1507a17b91b85358950771563d5fdeb6ee

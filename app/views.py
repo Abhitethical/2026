@@ -227,17 +227,750 @@ def product_details(request, cname, pname):
     )
 
 
+from django.shortcuts import render, redirect
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Cart, Placedorderxx, Product  # Make sure Product model is imported
+from .forms import CheckoutForm
+from django.db import transaction
 
 
 
 
+from django.db import transaction
+from decimal import Decimal
+from django.utils import timezone
+from django.shortcuts import render, redirect
+
+GST_RATE = Decimal("0.03")
+
+
+def checkouts(request):
+    user = request.user
+    cart_items = Cart.objects.filter(user=user)
+
+    if not cart_items.exists():
+        return redirect("home")
+
+    def calculate_totals(cart_items, discount=Decimal("0")):
+        net = Decimal("0")
+
+        for item in cart_items:
+            net += Decimal(item.product.selling_price) * item.product_qty
+
+        gst = net * GST_RATE
+        grand = net + gst - discount
+
+        return net, gst, max(grand, Decimal("0"))
+
+    if request.method == "POST":
+        step = request.POST.get("step")
+
+        # ================= STEP 1 =================
+        if step == "1":
+            form = CheckoutForm(request.POST)
+
+            if form.is_valid():
+                request.session["checkout_data"] = form.cleaned_data
+
+                net, gst, grand = calculate_totals(cart_items)
+
+                return render(request, "checkout_confirm.html", {
+                    "form_data": form.cleaned_data,
+                    "cart_items": cart_items,
+                    "net_total": net,
+                    "gst_amount": gst,
+                    "grand_total": grand,
+                    "discount": Decimal("0"),
+                    "coupon_message": ""
+                })
+
+            return render(request, "checkoutview.html", {"form": form})
+
+        # ================= COUPON STEP =================
+        elif step == "coupon":
+            coupon_code = request.POST.get("coupon_code", "").strip()
+
+            discount = Decimal("0")
+            message = "Invalid Coupon"
+            applied = False
+
+            today = timezone.now().date()
+
+            # one-time use check
+            already_used = Placedorderxx.objects.filter(
+                user=user,
+                coupon_code=coupon_code,
+                coupon_discount__gt=0
+            ).exists()
+
+            if already_used:
+                net, gst, grand = calculate_totals(cart_items)
+
+                return render(request, "checkout_confirm.html", {
+                    "form_data": request.session.get("checkout_data"),
+                    "cart_items": cart_items,
+                    "net_total": net,
+                    "gst_amount": gst,
+                    "grand_total": grand,
+                    "discount": Decimal("0"),
+                    "coupon_message": "This coupon can be used only once",
+                    "applied_coupon": ""
+                })
+
+            # check coupon
+            for item in cart_items:
+                product = item.product
+
+                if product.coupon_code == coupon_code and product.coupon_active:
+
+                    # ================= EXPIRED CHECK =================
+                    if product.coupon_expiry and product.coupon_expiry < today:
+                        message = "❌ This coupon has expired"
+                        applied = False
+                        break
+
+                    # ================= VALID COUPON =================
+                    if product.coupon_discount > 0:
+                        discount = Decimal(str(product.coupon_discount))
+                        message = f"Coupon Applied: -₹{discount}"
+                        applied = True
+                        break
+
+            request.session["applied_coupon"] = coupon_code if applied else ""
+            request.session["applied_discount"] = str(discount if applied else 0)
+
+            net, gst, grand = calculate_totals(cart_items, discount if applied else 0)
+
+            return render(request, "checkout_confirm.html", {
+                "form_data": request.session.get("checkout_data"),
+                "cart_items": cart_items,
+                "net_total": net,
+                "gst_amount": gst,
+                "grand_total": grand,
+                "discount": discount if applied else Decimal("0"),
+                "coupon_message": message,
+                "applied_coupon": coupon_code if applied else ""
+            })
+
+        # ================= STEP 2 =================
+        elif step == "2":
+            checkout_data = request.session.get("checkout_data")
+            if not checkout_data:
+                return redirect("checkouts")
+
+            discount = Decimal(request.session.get("applied_discount", "0"))
+            coupon_code = request.session.get("applied_coupon", "")
+
+            save_coupon = coupon_code if discount > 0 else ""
+            save_discount = discount if discount > 0 else Decimal("0")
+
+            try:
+                with transaction.atomic():
+
+                    net, gst, grand = calculate_totals(cart_items, save_discount)
+
+                    for item in cart_items:
+                        product = item.product
+
+                        if item.product_qty > product.quantity:
+                            return render(request, "checkout_confirm.html", {
+                                "error": f"Not enough stock for {product.name}",
+                                "form_data": checkout_data,
+                                "cart_items": cart_items
+                            })
+
+                        # final expiry safety check
+                        today = timezone.now().date()
+                        if product.coupon_expiry and product.coupon_expiry < today:
+                            save_coupon = ""
+                            save_discount = Decimal("0")
+
+                        Placedorderxx.objects.create(
+                            user=user,
+                            product=product,
+                            product_name=product.name,
+                            product_image=product.product_image,
+                            product_price=product.selling_price,
+                            selling_price=product.original_price,
+                            vendor=product.vendor,
+                            quantity=item.product_qty,
+
+                            name=checkout_data.get("full_name"),
+                            address=checkout_data.get("address_line1"),
+                            city=checkout_data.get("city"),
+                            state=checkout_data.get("state"),
+                            phone=checkout_data.get("phone"),
+                            postal_code=checkout_data.get("postal_code"),
+
+                            coupon_code=save_coupon,
+                            coupon_discount=save_discount,
+
+                            total_amount=grand
+                        )
+
+                        product.quantity -= item.product_qty
+                        product.save()
+
+                    cart_items.delete()
+
+                    request.session.pop("checkout_data", None)
+                    request.session.pop("applied_coupon", None)
+                    request.session.pop("applied_discount", None)
+
+                    return redirect("home")
+
+            except Exception as e:
+                return render(request, "checkout_confirm.html", {
+                    "error": str(e),
+                    "cart_items": cart_items,
+                    "form_data": checkout_data
+                })
+
+    return render(request, "checkoutview.html", {
+        "form": CheckoutForm()
+    })
+
+
+
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
+from datetime import timedelta
+
+def order_detail(request, pk):
+    order = get_object_or_404(Placedorderxx, id=pk, user=request.user)
+
+    # Convert UTC → Local Time
+    order.created_at = timezone.localtime(order.created_at)
+
+    # ✅ Return logic
+    can_return = False
+    if order.status == "Completed" and order.delivered_at:
+        delivered_local = timezone.localtime(order.delivered_at)
+
+        if timezone.now() <= delivered_local + timedelta(days=7):
+            can_return = True
+
+    return render(request, "order_detail.html", {
+        "order": order,
+        "can_return": can_return
+    })
 
 
 
 
+# views.py
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Review, Placedorderxx
+
+def add_review(request, order_id):
+    order = get_object_or_404(Placedorderxx, id=order_id, user=request.user)
+
+    # ✅ Only allow if completed
+    if order.status != 'completed':
+        messages.error(request, "You can review only after order is completed")
+        return redirect('orderdetail', pk=order_id)
+
+    # ✅ Prevent duplicate review
+    if Review.objects.filter(order=order).exists():
+        messages.error(request, "You already reviewed this product")
+        return redirect('orderdetail', pk=order_id)
+
+    # ✅ IMPORTANT FIX
+    if not order.product:
+        messages.error(request, "Product not available for this order")
+        return redirect('orderdetail', pk=order_id)
+
+    if request.method == "POST":
+        rating = request.POST.get('rating')
+        comment = request.POST.get('comment')
+        image = request.FILES.get('image')
+        video = request.FILES.get('video')
+
+        Review.objects.create(
+            user=request.user,
+            product=order.product,   # ✅ FIXED HERE
+            order=order,
+            rating=rating,
+            comment=comment,
+            image=image,
+            video=video
+        )
+
+        messages.success(request, "Review submitted successfully")
+        return redirect('orderdetail', pk=order_id)
+    
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+from .forms import ReturnRequestForm
+from .models import ReturnRequested, Placedorderxx
+
+
+@login_required
+def create_return_request(request, order_id):
+
+    order = get_object_or_404(
+        Placedorderxx,
+        id=order_id,
+        user=request.user
+    )
+
+
+    # prevent duplicate return
+
+    already_exists = ReturnRequested.objects.filter(
+        order=order
+    ).exists()
+
+
+    if already_exists:
+        messages.warning(
+            request,
+            "Return request already submitted."
+        )
+
+        return redirect(
+            "customer_return_list"
+        )
 
 
 
+    if request.method == "POST":
+
+        form = ReturnRequestForm(
+            request.POST,
+            request.FILES
+        )
+
+
+        if form.is_valid():
+
+            return_obj = form.save(
+                commit=False
+            )
+
+
+            return_obj.order = order
+
+            return_obj.user = request.user
+
+
+            # IMPORTANT
+            # seller ownership
+
+            return_obj.vendor = order.vendor
+
+
+
+            # product details
+
+            return_obj.product_name = order.product_name
+
+            return_obj.product_image = order.product_image
+
+            return_obj.selling_price = order.selling_price
+
+            return_obj.quantity = order.quantity
+
+
+
+            # customer details
+
+            return_obj.name = order.name
+
+            return_obj.address = order.address
+
+            return_obj.phone = order.phone
+
+            return_obj.postal_code = order.postal_code
+
+            return_obj.city = order.city 
+
+            return_obj.coupon_discount = order.coupon_discount
+
+            return_obj.city = order.city
+
+            return_obj.status = "requested"
+
+
+            return_obj.save()
+
+
+
+            messages.success(
+                request,
+                "Return request submitted successfully."
+            )
+
+
+            return redirect(
+                "customer_return_list"
+            )
+
+
+    else:
+
+        form = ReturnRequestForm()
+
+
+
+    return render(
+        request,
+        "return_form.html",
+        {
+            "form":form,
+            "order":order
+        }
+    )
+
+
+@login_required
+def customer_return_list(request):
+
+    returns = ReturnRequested.objects.filter(
+        user=request.user
+    ).order_by('-id')
+
+    return render(request, "customer_return_list.html", {
+        "returns": returns
+    })
+
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import ReturnRequested
+
+
+@login_required
+def return_detail(request, pk):
+
+    return_request = get_object_or_404(
+        ReturnRequested,
+        id=pk,
+        user=request.user
+    )
+
+    if request.method == "POST":
+
+        if return_request.status == "pickup_scheduled":
+
+            return_request.pickup_address = request.POST.get('pickup_address')
+            return_request.pickup_date = request.POST.get('pickup_date')
+            return_request.pickup_time_slot = request.POST.get('pickup_time_slot')
+            return_request.pickup_reason = request.POST.get('pickup_reason')
+
+            return_request.save()
+
+        else:
+
+            return_request.resubmit_reason = request.POST.get("resubmit_reason")
+            return_request.resubmit_description = request.POST.get("resubmit_description")
+
+            # image upload
+            if request.FILES.get("resubmit_image"):
+                return_request.resubmit_image = request.FILES["resubmit_image"]
+
+            # video upload
+            if request.FILES.get("resubmit_video"):
+                return_request.resubmit_video = request.FILES["resubmit_video"]
+
+            # change status
+            return_request.status = "Resubmitted"
+
+            return_request.save()
+
+        return redirect("return_detail", pk=return_request.id)
+
+    return render(request, "return_detail.html", {
+        "return_request": return_request
+    })
+
+
+import secrets
+
+from datetime import timedelta
+
+from django.shortcuts import render, redirect, get_object_or_404
+
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+from django.utils import timezone
+
+from django.db import transaction
+
+from .models import PasswordResetToken, PasswordResetLimit
+
+
+# ---------------------------------------
+# FORGOT PASSWORD
+# ---------------------------------------
+
+def forgot_password(request):
+
+    if request.method == "POST":
+
+        email = request.POST.get('email', '').strip()
+
+        user = User.objects.filter(
+            email__iexact=email
+        ).first()
+
+        if not user:
+
+            return render(
+                request,
+                'forgot_password.html',
+                {
+                    'error': 'Email address is not registered.'
+                }
+            )
+
+        today = timezone.localdate()
+
+        # Check daily reset limit
+        reset_limit = PasswordResetLimit.objects.filter(
+            user=user,
+            reset_date=today
+        ).first()
+
+        if reset_limit and reset_limit.reset_count >= 3:
+
+            return render(
+                request,
+                'accounts/forgot_password.html',
+                {
+                    'error': 'Daily password reset limit reached. Try again tomorrow.'
+                }
+            )
+
+        # Invalidate previously issued unused tokens
+        PasswordResetToken.objects.filter(
+            user=user,
+            is_used=False
+        ).update(is_used=True)
+
+        # Generate secure token
+        token = secrets.token_urlsafe(32)
+
+        PasswordResetToken.objects.create(
+            user=user,
+            token=token
+        )
+
+        # Generate reset URL
+        reset_link = request.build_absolute_uri(
+            f'/reset-password/{token}/'
+        )
+
+        # Send email
+        subject = 'Password Reset Request'
+
+        message = f"""
+Hello {user.username},
+
+We received a request to reset your password.
+
+Click the link below to reset your password:
+
+{reset_link}
+
+This link expires in 10 minutes.
+
+If you did not request this, please ignore this email.
+"""
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False
+        )
+
+        return render(
+            request,
+            'forgot_password.html',
+            {
+                'success': 'Password reset link has been sent to your email.'
+            }
+        )
+
+    return render(
+        request,
+        'forgot_password.html'
+    )
+
+
+# ---------------------------------------
+# RESET PASSWORD
+# ---------------------------------------
+
+def reset_password(request, token):
+
+    reset_token = PasswordResetToken.objects.filter(
+        token=token,
+        is_used=False
+    ).select_related('user').first()
+
+    if not reset_token:
+
+        return render(
+            request,
+            'reset_password.html',
+            {
+                'error': 'This password reset link is expired or invalid.'
+            }
+        )
+
+    # Check 10-minute expiration
+    expiry_time = reset_token.created_at + timedelta(minutes=10)
+
+    if timezone.now() > expiry_time:
+
+        reset_token.is_used = True
+        reset_token.save(update_fields=['is_used'])
+
+        return render(
+            request,
+            'reset_password.html',
+            {
+                'error': 'This password reset link is expired or invalid.'
+            }
+        )
+
+    if request.method == "POST":
+
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if not password or not confirm_password:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Please enter both passwords.'
+                }
+            )
+
+        if password != confirm_password:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Passwords do not match.'
+                }
+            )
+
+        if len(password) < 8:
+
+            return render(
+                request,
+                'reset_password.html',
+                {
+                    'error': 'Password must contain at least 8 characters.'
+                }
+            )
+
+        # Atomically check token and daily limit
+        with transaction.atomic():
+
+            locked_token = PasswordResetToken.objects.select_for_update().filter(
+                pk=reset_token.pk,
+                is_used=False
+            ).first()
+
+            if not locked_token:
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'This password reset link is expired or invalid.'
+                    }
+                )
+
+            # Check expiration again
+            if timezone.now() > locked_token.created_at + timedelta(minutes=10):
+
+                locked_token.is_used = True
+                locked_token.save(update_fields=['is_used'])
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'This password reset link is expired or invalid.'
+                    }
+                )
+
+            user = User.objects.select_for_update().get(
+                pk=locked_token.user_id
+            )
+
+            today = timezone.localdate()
+
+            limit, created = PasswordResetLimit.objects.get_or_create(
+                user=user,
+                reset_date=today
+            )
+
+            # Lock daily limit row
+            limit = PasswordResetLimit.objects.select_for_update().get(
+                pk=limit.pk
+            )
+
+            if limit.reset_count >= 3:
+
+                locked_token.is_used = True
+                locked_token.save(update_fields=['is_used'])
+
+                return render(
+                    request,
+                    'reset_password.html',
+                    {
+                        'error': 'Daily password reset limit reached. Try again tomorrow.'
+                    }
+                )
+
+            # Update password
+            user.password = make_password(password)
+
+            user.save(update_fields=['password'])
+
+            # Increase daily successful reset count
+            limit.reset_count += 1
+
+            limit.save(update_fields=['reset_count'])
+
+            # Mark token as used
+            locked_token.is_used = True
+
+            locked_token.save(update_fields=['is_used'])
+
+        return render(
+            request,
+            'password_reset_success.html',
+            {
+                'success': 'Your password has been changed successfully.'
+            }
+        )
+
+    return render(
+        request,
+        'reset_password.html'
+    )
 
 
 
@@ -306,8 +1039,6 @@ def productsearch(request):
     return render(request,"productsearch.html")
 
 
-def forgotpassword(request):
-    return render(request,"forgotpassword.html")
 
 def helpcenter(request):
     return render(request,"helpcenter.html")

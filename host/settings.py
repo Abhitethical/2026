@@ -11,9 +11,17 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
+<<<<<<< HEAD
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+=======
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+>>>>>>> e4195a1507a17b91b85358950771563d5fdeb6ee
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -54,9 +62,24 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app'
 
+<<<<<<< HEAD
 
 
+=======
+ 
+>>>>>>> e4195a1507a17b91b85358950771563d5fdeb6ee
 ]
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "app.storage.VercelBlobStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -183,7 +206,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Kolkata'
 
+USE_TZ = True
 TIME_ZONE = 'UTC'
 
 USE_I18N = True

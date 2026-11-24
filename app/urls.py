@@ -16,11 +16,22 @@ urlpatterns=[
     path('collections/<str:name>',views.collectionsview,name="collections"),
     path('collections/<str:cname>/<str:pname>',views.product_details,name="product_details"),
     path('addtocart',views.add_to_cart,name="addtocart"),
+    path('checkouts/', views.checkouts, name='checkoutview'),
+    path('order/<int:pk>/', views.order_detail, name='orderdetail'),  
+    path('add-review/<int:order_id>/', views.add_review, name='add_review'),
+    path("return/<int:order_id>/", views.create_return_request, name="return_request"),
+    path('my-returns/',views.customer_return_list,name='customer_return_list'),
+    path('return-detail/<int:pk>/',views.return_detail, name='return_detail'),
+    path('forgot-password/',views.forgot_password,name='forgot_password'),
+    path('reset-password/<str:token>/',views.reset_password,name='reset_password'),
+
+
+
+
 
 
     path("productsearch",views.productsearch, name="productsearch"),
     path("profile",views.profile, name="profile"),
-    path("forgotpassword",views.forgotpassword, name="forgotpassword"),
     path("helpcenter",views.helpcenter, name="helpcenter"),
     path("contactus",views.contactus, name="contactus"),
     path("shipping",views.shipping, name="shipping"),
