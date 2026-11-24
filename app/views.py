@@ -1062,6 +1062,88 @@ def termsconditions(request):
     return render(request, 'termsconditions.html')
 def cookiepolicy(request):
     return render(request, 'cookiepolicy.html')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import SellerProfile
+import random
+def seller_login(request):
+    if request.method == "POST":
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user:
+            try:
+                seller = SellerProfile.objects.get(user=user)
+            except SellerProfile.DoesNotExist:
+                messages.error(request, "You are not registered as a seller.")
+                return redirect('seller_login')
+
+            if seller.is_locked:
+                messages.error(request, "Your account is locked. Contact admin.")
+                return redirect('seller_login')
+
+            if seller.status == 'approved':
+                seller.login_attempts = 0
+                seller.save()
+                login(request, user)
+                return redirect('seller_dashboard')
+            elif seller.status == 'pending':
+                messages.error(request, "Your account is pending approval.")
+            elif seller.status == 'rejected':
+                messages.error(request, "Your account registration was rejected.")
+            elif seller.status == 'blocked':
+                messages.error(request, "Your account is blocked. Contact admin.")
+
+        else:
+            try:
+                seller = SellerProfile.objects.get(user__username=username)
+                seller.login_attempts += 1
+                if seller.login_attempts >= 3:
+                    seller.is_locked = True
+                    messages.error(request, "Account locked after 3 failed attempts. Contact admin.")
+                else:
+                    messages.error(request, "Invalid username or password.")
+                seller.save()
+            except SellerProfile.DoesNotExist:
+                messages.error(request, "Invalid username or password.")
+
+    return render(request, 'saller/seller_login.html')
+
+
     
 
 
