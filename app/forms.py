@@ -159,3 +159,77 @@ class ReturnRequestForm(forms.ModelForm):
 
 
 
+
+
+
+from django import forms
+from django.contrib.auth.password_validation import validate_password
+
+
+class SellerForgotPasswordForm(forms.Form):
+
+    email = forms.EmailField(
+        label="Registered Email",
+        max_length=255,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter your registered email",
+                "autocomplete": "off",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+            }
+        )
+    )
+
+
+class SellerResetPasswordForm(forms.Form):
+
+    new_password = forms.CharField(
+        label="New Password",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter new password",
+                "autocomplete": "new-password",
+                "spellcheck": "false",
+            }
+        )
+    )
+
+    confirm_password = forms.CharField(
+        label="Confirm New Password",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Confirm new password",
+                "autocomplete": "new-password",
+                "spellcheck": "false",
+            }
+        )
+    )
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        password = cleaned_data.get("new_password")
+        confirm = cleaned_data.get("confirm_password")
+
+        if password and confirm:
+
+            if password != confirm:
+                raise forms.ValidationError(
+                    "Passwords do not match."
+                )
+
+            try:
+                validate_password(password)
+
+            except forms.ValidationError as error:
+                raise forms.ValidationError(error.messages)
+
+        return cleaned_data
+
+
+
