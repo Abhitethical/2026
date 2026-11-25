@@ -1955,6 +1955,93 @@ def seller_register_step1(request):
     )
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.cache import never_cache
+from .models import SellerProfile
+
+@never_cache
+def seller_register_step2(request, seller_id):
+
+    if not request.session.get("seller_step1_completed"):
+        return redirect("seller_register_step1")
+
+    session_seller_id = request.session.get("seller_id")
+
+    if not session_seller_id:
+        return redirect("seller_register_step1")
+
+
+    if int(session_seller_id) != int(seller_id):
+        return redirect("seller_register_step1")
+
+    seller = get_object_or_404(
+        SellerProfile,
+        id=seller_id
+    )
+
+    if request.session.get("seller_step2_completed"):
+
+        completed_seller_id = request.session.get(
+            "seller_step2_seller_id"
+        )
+
+        if completed_seller_id == seller_id:
+
+            return redirect(
+                "seller_register_step3",
+                seller.id
+            )
+
+        return redirect("seller_register_step1")
+
+    if request.method == "POST":
+
+        seller.aadhar_number = request.POST.get(
+            "aadhar_number"
+        )
+
+        seller.pan_number = request.POST.get(
+            "pan_number"
+        )
+
+        seller.aadhar_image = request.FILES.get(
+            "aadhar_image"
+        )
+
+        seller.pan_image = request.FILES.get(
+            "pan_image"
+        )
+
+        seller.gst_certificate = request.FILES.get(
+            "gst_certificate"
+        )
+
+        seller.save()
+
+        request.session["seller_step2_completed"] = True
+
+        request.session["seller_step2_seller_id"] = seller.id
+
+        request.session.modified = True
+
+        return redirect(
+            "seller_register_step3",
+            seller.id
+        )
+
+    response = render(
+        request,
+        "saller/step2.html",
+        {
+            "step": 2,
+            "seller": seller
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0, private"
+    )
 
     
 
