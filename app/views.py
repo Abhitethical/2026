@@ -1529,7 +1529,7 @@ ShopKart Seller Security Team
 
 
 def seller_register_step1(request):
-    return render(request,"step1.html")
+    return render(request,"saller/step1.html")
 
 
 
