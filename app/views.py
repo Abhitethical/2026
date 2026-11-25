@@ -1528,8 +1528,537 @@ ShopKart Seller Security Team
 
 
 
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+
+from .models import SellerProfile
+
+MAX_IMAGE_SIZE = 5 * 1024 * 1024       # 5 MB
+MAX_PDF_SIZE = 10 * 1024 * 1024        # 10 MB
+
+
+def validate_registration_file(uploaded_file, field_name="document"):
+
+    if not uploaded_file:
+        return None
+
+
+    filename = uploaded_file.name.lower()
+
+    allowed_extensions = {
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png",
+    }
+
+    extension = None
+
+    for ext in allowed_extensions:
+        if filename.endswith(ext):
+            extension = ext
+            break
+
+
+    if extension is None:
+
+        raise ValueError(
+            f"{field_name}: Only PDF, JPG, JPEG or PNG files are allowed."
+        )
+
+    if extension == ".pdf":
+
+        if uploaded_file.size > MAX_PDF_SIZE:
+
+            raise ValueError(
+                f"{field_name}: PDF file must be 10 MB or smaller."
+            )
+
+    else:
+
+        if uploaded_file.size > MAX_IMAGE_SIZE:
+
+            raise ValueError(
+                f"{field_name}: Image must be 5 MB or smaller."
+            )
+
+
+    uploaded_file.seek(0)
+
+    header = uploaded_file.read(16)
+
+    uploaded_file.seek(0)
+
+    if extension == ".pdf":
+
+        if not header.startswith(b"%PDF"):
+
+            raise ValueError(
+                f"{field_name}: Invalid PDF file."
+            )
+
+    else:
+
+        valid_image = False
+
+
+        # JPEG
+        if header.startswith(b"\xff\xd8\xff"):
+            valid_image = True
+
+
+        # PNG
+        elif header.startswith(b"\x89PNG\r\n\x1a\n"):
+            valid_image = True
+
+
+        if not valid_image:
+
+            raise ValueError(
+                f"{field_name}: Invalid image file."
+            )
+
+
+    return uploaded_file
+
+@never_cache
 def seller_register_step1(request):
-    return render(request,"saller/step1.html")
+
+    # =====================================================
+    # PREVENT REOPENING COMPLETED STEP 1
+    # =====================================================
+
+    if request.session.get("seller_step1_completed"):
+
+        seller_id = request.session.get("seller_id")
+
+        if seller_id:
+
+            return redirect(
+                "seller_register_step2",
+                seller_id=seller_id
+            )
+
+        request.session.pop(
+            "seller_step1_completed",
+            None
+        )
+
+        request.session.pop(
+            "seller_id",
+            None
+        )
+
+    if request.method == "POST":
+
+        try:
+
+            business_type = (
+                request.POST.get(
+                    "business_type",
+                    ""
+                ).strip().lower()
+            )
+
+
+            allowed_business_types = {
+                "individual",
+                "proprietorship",
+                "partnership",
+                "llp",
+                "private_limited",
+                "opc",
+            }
+
+
+            if business_type not in allowed_business_types:
+
+                raise ValueError(
+                    "Please select a valid Business Type."
+                )
+
+
+            terms_accepted = (
+                request.POST.get("terms_accepted") == "1"
+            )
+
+            privacy_policy_accepted = (
+                request.POST.get(
+                    "privacy_policy_accepted"
+                ) == "1"
+            )
+
+            return_policy_accepted = (
+                request.POST.get(
+                    "return_policy_accepted"
+                ) == "1"
+            )
+
+            commission_agreement_accepted = (
+                request.POST.get(
+                    "commission_agreement_accepted"
+                ) == "1"
+            )
+
+            if not terms_accepted:
+
+                raise ValueError(
+                    "You must accept the Terms & Conditions."
+                )
+
+
+            if not privacy_policy_accepted:
+
+                raise ValueError(
+                    "You must accept the Privacy Policy."
+                )
+
+
+            if not return_policy_accepted:
+
+                raise ValueError(
+                    "You must accept the Return Policy."
+                )
+
+
+            if not commission_agreement_accepted:
+
+                raise ValueError(
+                    "You must accept the Seller Agreement."
+                )
+
+
+            profile_photo = request.FILES.get(
+                "profile_photo"
+            )
+
+            gst_certificate = request.FILES.get(
+                "gst_certificate"
+            )
+
+            incorporation_certificate = request.FILES.get(
+                "incorporation_certificate"
+            )
+
+            partnership_deed = request.FILES.get(
+                "partnership_deed"
+            )
+
+            trademark_certificate = request.FILES.get(
+                "trademark_certificate"
+            )
+
+            pan_image = request.FILES.get(
+                "pan_image"
+            )
+
+            business_license = request.FILES.get(
+                "business_license"
+            )
+
+            llp_agreement = request.FILES.get(
+                "llp_agreement"
+            )
+
+            moa_document = request.FILES.get(
+                "moa_document"
+            )
+
+            aoa_document = request.FILES.get(
+                "aoa_document"
+            )
+
+            udyam_registration = request.FILES.get(
+                "udyam_registration"
+            )
+
+            shop_establishment_license = request.FILES.get(
+                "shop_establishment_license"
+            )
+
+            if profile_photo:
+
+                validate_registration_file(
+                    profile_photo,
+                    "Profile Photo"
+                )
+
+            files_to_validate = [
+
+                (
+                    gst_certificate,
+                    "GST Certificate"
+                ),
+
+                (
+                    incorporation_certificate,
+                    "Incorporation Certificate"
+                ),
+
+                (
+                    partnership_deed,
+                    "Partnership Deed"
+                ),
+
+                (
+                    trademark_certificate,
+                    "Trademark Certificate"
+                ),
+
+                (
+                    pan_image,
+                    "PAN Image"
+                ),
+
+                (
+                    business_license,
+                    "Business License"
+                ),
+
+                (
+                    llp_agreement,
+                    "LLP Agreement"
+                ),
+
+                (
+                    moa_document,
+                    "MOA Document"
+                ),
+
+                (
+                    aoa_document,
+                    "AOA Document"
+                ),
+
+                (
+                    udyam_registration,
+                    "Udyam Registration"
+                ),
+
+                (
+                    shop_establishment_license,
+                    "Shop Establishment License"
+                ),
+            ]
+
+
+            for uploaded_file, field_name in files_to_validate:
+
+                if uploaded_file:
+
+                    validate_registration_file(
+                        uploaded_file,
+                        field_name
+                    )
+
+            with transaction.atomic():
+
+               
+                user = User.objects.create_user(
+
+                    username=request.POST.get(
+                        "username"
+                    ),
+
+                    email=request.POST.get(
+                        "email"
+                    ),
+
+                    password=request.POST.get(
+                        "password"
+                    )
+                )
+
+
+              
+                seller = SellerProfile.objects.create(
+
+                    user=user,
+
+                    business_type=business_type,
+
+                    wedding_anniversary=(
+                        request.POST.get(
+                            "wedding_anniversary"
+                        )
+                    ),
+
+                    date_of_birth=(
+                        request.POST.get(
+                            "date_of_birth"
+                        )
+                    ),
+
+                    gender=(
+                        request.POST.get(
+                            "gender"
+                        )
+                    ),
+
+                    email=(
+                        request.POST.get(
+                            "email"
+                        )
+                    ),
+
+                    company_name=(
+                        request.POST.get(
+                            "company_name"
+                        )
+                    ),
+
+                    mobile_number=(
+                        request.POST.get(
+                            "mobile"
+                        )
+                    ),
+
+                    address=(
+                        request.POST.get(
+                            "address"
+                        )
+                    ),
+
+                    state=(
+                        request.POST.get(
+                            "state"
+                        )
+                    ),
+
+                    city=(
+                        request.POST.get(
+                            "city"
+                        )
+                    ),
+
+                    pincode=(
+                        request.POST.get(
+                            "pincode"
+                        )
+                    ),
+
+                    country=(
+                        request.POST.get(
+                            "country"
+                        )
+                    ),
+                    profile_photo=profile_photo,
+
+                    gst_certificate=gst_certificate,
+
+                    incorporation_certificate=(
+                        incorporation_certificate
+                    ),
+
+                    partnership_deed=(
+                        partnership_deed
+                    ),
+
+                    trademark_certificate=(
+                        trademark_certificate
+                    ),
+
+                    brand_authorization_letter=(
+                        pan_image
+                    ),
+
+                    business_license=(
+                        business_license
+                    ),
+
+                    llp_agreement=(
+                        llp_agreement
+                    ),
+
+                    moa_document=(
+                        moa_document
+                    ),
+
+                    aoa_document=(
+                        aoa_document
+                    ),
+
+                    udyam_registration=(
+                        udyam_registration
+                    ),
+
+                    shop_establishment_license=(
+                        shop_establishment_license
+                    ),
+
+                    terms_accepted=(
+                        terms_accepted
+                    ),
+
+                    privacy_policy_accepted=(
+                        privacy_policy_accepted
+                    ),
+
+                    return_policy_accepted=(
+                        return_policy_accepted
+                    ),
+
+                    commission_agreement_accepted=(
+                        commission_agreement_accepted
+                    ),
+                )
+                request.session[
+                    "seller_step1_completed"
+                ] = True
+
+                request.session[
+                    "seller_id"
+                ] = seller.id
+
+                request.session.modified = True
+
+                return redirect(
+                    "seller_register_step2",
+                    seller_id=seller.id
+                )
+
+
+        except Exception as e:
+
+            print(
+                "Seller Registration Error:",
+                e
+            )
+
+
+            return render(
+                request,
+                "saller/step1.html",
+                {
+                    "step": 1,
+                    "error": str(e)
+                }
+            )
+
+    response = render(
+        request,
+        "saller/step1.html",
+        {
+            "step": 1
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0, private"
+    )
+
+    response["Pragma"] = "no-cache"
+
+    response["Expires"] = "0"
+
+
+    return response
+
 
 
 
