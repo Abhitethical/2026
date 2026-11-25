@@ -2060,5 +2060,245 @@ def seller_register_step1(request):
     return response
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.cache import never_cache
+from .models import SellerProfile
+
+@never_cache
+def seller_register_step2(request, seller_id):
+
+    if not request.session.get("seller_step1_completed"):
+        return redirect("seller_register_step1")
+
+    session_seller_id = request.session.get("seller_id")
+
+    if not session_seller_id:
+        return redirect("seller_register_step1")
+
+
+    if int(session_seller_id) != int(seller_id):
+        return redirect("seller_register_step1")
+
+    seller = get_object_or_404(
+        SellerProfile,
+        id=seller_id
+    )
+
+    if request.session.get("seller_step2_completed"):
+
+        completed_seller_id = request.session.get(
+            "seller_step2_seller_id"
+        )
+
+        if completed_seller_id == seller_id:
+
+            return redirect(
+                "seller_register_step3",
+                seller.id
+            )
+
+        return redirect("seller_register_step1")
+
+    if request.method == "POST":
+
+        seller.aadhar_number = request.POST.get(
+            "aadhar_number"
+        )
+
+        seller.pan_number = request.POST.get(
+            "pan_number"
+        )
+
+        seller.aadhar_image = request.FILES.get(
+            "aadhar_image"
+        )
+
+        seller.pan_image = request.FILES.get(
+            "pan_image"
+        )
+
+        seller.gst_certificate = request.FILES.get(
+            "gst_certificate"
+        )
+
+        seller.save()
+
+        request.session["seller_step2_completed"] = True
+
+        request.session["seller_step2_seller_id"] = seller.id
+
+        request.session.modified = True
+
+        return redirect(
+            "seller_register_step3",
+            seller.id
+        )
+
+    response = render(
+        request,
+        "saller/step2.html",
+        {
+            "step": 2,
+            "seller": seller
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0, private"
+    )
+
+    response["Pragma"] = "no-cache"
+
+    response["Expires"] = "0"
+
+
+    return response
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.cache import never_cache
+from .models import SellerProfile
+
+@never_cache
+def seller_register_step3(request, seller_id):
+
+ 
+    if not request.session.get("seller_step2_completed"):
+        return redirect("seller_register_step2", seller_id=seller_id)
+
+    session_seller_id = request.session.get("seller_id")
+
+    if not session_seller_id:
+        return redirect("seller_register_step1")
+
+
+    if int(session_seller_id) != int(seller_id):
+        return redirect("seller_register_step1")
+
+    seller = get_object_or_404(
+        SellerProfile,
+        id=seller_id
+    )
+
+    if request.session.get("seller_step3_completed"):
+
+        completed_seller_id = request.session.get(
+            "seller_step3_seller_id"
+        )
+
+        if completed_seller_id == seller.id:
+
+            return redirect(
+                "registration_complete"
+            )
+
+        return redirect("seller_register_step1")
+
+    if request.method == "POST":
+
+        liveface_scan = request.FILES.get(
+            "liveface_scan"
+        )
+
+        if liveface_scan:
+            seller.liveface_scan = liveface_scan
+
+        seller.latitude = (
+            request.POST.get("latitude")
+            or None
+        )
+
+        seller.longitude = (
+            request.POST.get("longitude")
+            or None
+        )
+
+        seller.live_location = (
+            request.POST.get(
+                "live_location",
+                ""
+            ).strip()
+        )
+
+        seller.save()
+
+        request.session["seller_step3_completed"] = True
+
+        request.session["seller_step3_seller_id"] = seller.id
+
+        request.session.modified = True
+
+        return redirect(
+            "registration_complete"
+        )
+
+    response = render(
+        request,
+        "saller/step3.html",
+        {
+            "step": 3,
+            "seller": seller
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0, private"
+    )
+
+    response["Pragma"] = "no-cache"
+
+    response["Expires"] = "0"
+
+
+    return response
+
+# STEP 4
+def registration_completex(request):
+    return render(request, "saller/step4.html", {"step": 4})
+
+
+from django.shortcuts import render
+from django.views.decorators.cache import never_cache
+
+
+@never_cache
+def registration_complete(request):
+
+    request.session.pop("seller_step1_completed", None)
+    request.session.pop("seller_step2_completed", None)
+    request.session.pop("seller_step2_seller_id", None)
+    request.session.pop("seller_step3_completed", None)
+    request.session.pop("seller_step3_seller_id", None)
+    request.session.pop("seller_id", None)
+
+    request.session.modified = True
+
+    response = render(
+        request,
+        "saller/step4.html",
+        {
+            "step": 4
+        }
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0, private"
+    )
+
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+
+
+    return response
+
+
+
+
+
+
 
 
