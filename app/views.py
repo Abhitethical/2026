@@ -1637,7 +1637,6 @@ def seller_register_step1(request):
         seller_id = request.session.get("seller_id")
 
         if seller_id:
-
             return redirect(
                 "seller_register_step2",
                 seller_id=seller_id
@@ -1653,9 +1652,17 @@ def seller_register_step1(request):
             None
         )
 
+    # =====================================================
+    # POST REQUEST
+    # =====================================================
+
     if request.method == "POST":
 
         try:
+
+            # =================================================
+            # BUSINESS TYPE VALIDATION
+            # =================================================
 
             business_type = (
                 request.POST.get(
@@ -1663,7 +1670,6 @@ def seller_register_step1(request):
                     ""
                 ).strip().lower()
             )
-
 
             allowed_business_types = {
                 "individual",
@@ -1674,63 +1680,68 @@ def seller_register_step1(request):
                 "opc",
             }
 
-
             if business_type not in allowed_business_types:
-
                 raise ValueError(
                     "Please select a valid Business Type."
                 )
 
+            # =================================================
+            # CHECKBOX VALIDATION - FIXED
+            # =================================================
 
-            terms_accepted = (
-                request.POST.get("terms_accepted") == "1"
+            def is_checked(field_name):
+
+                value = request.POST.get(
+                    field_name,
+                    ""
+                ).strip().lower()
+
+                return value in [
+                    "1",
+                    "on",
+                    "true",
+                    "yes"
+                ]
+
+            terms_accepted = is_checked(
+                "terms_accepted"
             )
 
-            privacy_policy_accepted = (
-                request.POST.get(
-                    "privacy_policy_accepted"
-                ) == "1"
+            privacy_policy_accepted = is_checked(
+                "privacy_policy_accepted"
             )
 
-            return_policy_accepted = (
-                request.POST.get(
-                    "return_policy_accepted"
-                ) == "1"
+            return_policy_accepted = is_checked(
+                "return_policy_accepted"
             )
 
-            commission_agreement_accepted = (
-                request.POST.get(
-                    "commission_agreement_accepted"
-                ) == "1"
+            commission_agreement_accepted = is_checked(
+                "commission_agreement_accepted"
             )
 
             if not terms_accepted:
-
                 raise ValueError(
                     "You must accept the Terms & Conditions."
                 )
 
-
             if not privacy_policy_accepted:
-
                 raise ValueError(
                     "You must accept the Privacy Policy."
                 )
 
-
             if not return_policy_accepted:
-
                 raise ValueError(
                     "You must accept the Return Policy."
                 )
 
-
             if not commission_agreement_accepted:
-
                 raise ValueError(
                     "You must accept the Seller Agreement."
                 )
 
+            # =================================================
+            # GET UPLOADED FILES
+            # =================================================
 
             profile_photo = request.FILES.get(
                 "profile_photo"
@@ -1780,59 +1791,37 @@ def seller_register_step1(request):
                 "shop_establishment_license"
             )
 
-            if profile_photo:
-
-                validate_registration_file(
-                    profile_photo,
-                    "Profile Photo"
-                )
+            # =================================================
+            # FILE VALIDATION
+            # =================================================
 
             files_to_validate = [
 
-                (
-                    gst_certificate,
-                    "GST Certificate"
-                ),
+                (profile_photo, "Profile Photo"),
+
+                (gst_certificate, "GST Certificate"),
 
                 (
                     incorporation_certificate,
                     "Incorporation Certificate"
                 ),
 
-                (
-                    partnership_deed,
-                    "Partnership Deed"
-                ),
+                (partnership_deed, "Partnership Deed"),
 
                 (
                     trademark_certificate,
                     "Trademark Certificate"
                 ),
 
-                (
-                    pan_image,
-                    "PAN Image"
-                ),
+                (pan_image, "PAN Image"),
 
-                (
-                    business_license,
-                    "Business License"
-                ),
+                (business_license, "Business License"),
 
-                (
-                    llp_agreement,
-                    "LLP Agreement"
-                ),
+                (llp_agreement, "LLP Agreement"),
 
-                (
-                    moa_document,
-                    "MOA Document"
-                ),
+                (moa_document, "MOA Document"),
 
-                (
-                    aoa_document,
-                    "AOA Document"
-                ),
+                (aoa_document, "AOA Document"),
 
                 (
                     udyam_registration,
@@ -1845,7 +1834,6 @@ def seller_register_step1(request):
                 ),
             ]
 
-
             for uploaded_file, field_name in files_to_validate:
 
                 if uploaded_file:
@@ -1855,26 +1843,49 @@ def seller_register_step1(request):
                         field_name
                     )
 
+            # =================================================
+            # DATABASE TRANSACTION
+            # =================================================
+
             with transaction.atomic():
 
-               
-                user = User.objects.create_user(
+                # ---------------------------------------------
+                # CREATE USER
+                # ---------------------------------------------
 
-                    username=request.POST.get(
-                        "username"
-                    ),
+                username = request.POST.get(
+                    "username",
+                    ""
+                ).strip()
 
-                    email=request.POST.get(
-                        "email"
-                    ),
+                email = request.POST.get(
+                    "email",
+                    ""
+                ).strip()
 
-                    password=request.POST.get(
-                        "password"
-                    )
+                password = request.POST.get(
+                    "password",
+                    ""
                 )
 
+                if not username or not email or not password:
+                    raise ValueError(
+                        "Username, email and password are required."
+                    )
 
-              
+                user = User.objects.create_user(
+
+                    username=username,
+
+                    email=email,
+
+                    password=password
+                )
+
+                # ---------------------------------------------
+                # CREATE SELLER PROFILE
+                # ---------------------------------------------
+
                 seller = SellerProfile.objects.create(
 
                     user=user,
@@ -1884,68 +1895,51 @@ def seller_register_step1(request):
                     wedding_anniversary=(
                         request.POST.get(
                             "wedding_anniversary"
-                        )
+                        ) or None
                     ),
 
                     date_of_birth=(
                         request.POST.get(
                             "date_of_birth"
-                        )
+                        ) or None
                     ),
 
-                    gender=(
-                        request.POST.get(
-                            "gender"
-                        )
+                    gender=request.POST.get(
+                        "gender"
                     ),
 
-                    email=(
-                        request.POST.get(
-                            "email"
-                        )
+                    email=email,
+
+                    company_name=request.POST.get(
+                        "company_name"
                     ),
 
-                    company_name=(
-                        request.POST.get(
-                            "company_name"
-                        )
+                    mobile_number=request.POST.get(
+                        "mobile"
                     ),
 
-                    mobile_number=(
-                        request.POST.get(
-                            "mobile"
-                        )
+                    address=request.POST.get(
+                        "address"
                     ),
 
-                    address=(
-                        request.POST.get(
-                            "address"
-                        )
+                    state=request.POST.get(
+                        "state"
                     ),
 
-                    state=(
-                        request.POST.get(
-                            "state"
-                        )
+                    city=request.POST.get(
+                        "city"
                     ),
 
-                    city=(
-                        request.POST.get(
-                            "city"
-                        )
+                    pincode=request.POST.get(
+                        "pincode"
                     ),
 
-                    pincode=(
-                        request.POST.get(
-                            "pincode"
-                        )
+                    country=request.POST.get(
+                        "country"
                     ),
 
-                    country=(
-                        request.POST.get(
-                            "country"
-                        )
-                    ),
+                    # FILES
+
                     profile_photo=profile_photo,
 
                     gst_certificate=gst_certificate,
@@ -1954,45 +1948,29 @@ def seller_register_step1(request):
                         incorporation_certificate
                     ),
 
-                    partnership_deed=(
-                        partnership_deed
-                    ),
+                    partnership_deed=partnership_deed,
 
-                    trademark_certificate=(
-                        trademark_certificate
-                    ),
+                    trademark_certificate=trademark_certificate,
 
-                    brand_authorization_letter=(
-                        pan_image
-                    ),
+                    brand_authorization_letter=pan_image,
 
-                    business_license=(
-                        business_license
-                    ),
+                    business_license=business_license,
 
-                    llp_agreement=(
-                        llp_agreement
-                    ),
+                    llp_agreement=llp_agreement,
 
-                    moa_document=(
-                        moa_document
-                    ),
+                    moa_document=moa_document,
 
-                    aoa_document=(
-                        aoa_document
-                    ),
+                    aoa_document=aoa_document,
 
-                    udyam_registration=(
-                        udyam_registration
-                    ),
+                    udyam_registration=udyam_registration,
 
                     shop_establishment_license=(
                         shop_establishment_license
                     ),
 
-                    terms_accepted=(
-                        terms_accepted
-                    ),
+                    # AGREEMENTS
+
+                    terms_accepted=terms_accepted,
 
                     privacy_policy_accepted=(
                         privacy_policy_accepted
@@ -2006,6 +1984,11 @@ def seller_register_step1(request):
                         commission_agreement_accepted
                     ),
                 )
+
+                # ---------------------------------------------
+                # SESSION MANAGEMENT
+                # ---------------------------------------------
+
                 request.session[
                     "seller_step1_completed"
                 ] = True
@@ -2016,19 +1999,21 @@ def seller_register_step1(request):
 
                 request.session.modified = True
 
+                # ---------------------------------------------
+                # REDIRECT TO STEP 2
+                # ---------------------------------------------
+
                 return redirect(
                     "seller_register_step2",
                     seller_id=seller.id
                 )
 
-
         except Exception as e:
 
             print(
                 "Seller Registration Error:",
-                e
+                str(e)
             )
-
 
             return render(
                 request,
@@ -2038,6 +2023,10 @@ def seller_register_step1(request):
                     "error": str(e)
                 }
             )
+
+    # =====================================================
+    # GET REQUEST
+    # =====================================================
 
     response = render(
         request,
@@ -2056,8 +2045,8 @@ def seller_register_step1(request):
 
     response["Expires"] = "0"
 
-
     return response
+
 
 
 from django.shortcuts import render, redirect, get_object_or_404
