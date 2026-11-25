@@ -1637,6 +1637,7 @@ def seller_register_step1(request):
         seller_id = request.session.get("seller_id")
 
         if seller_id:
+
             return redirect(
                 "seller_register_step2",
                 seller_id=seller_id
@@ -1681,62 +1682,9 @@ def seller_register_step1(request):
             }
 
             if business_type not in allowed_business_types:
+
                 raise ValueError(
                     "Please select a valid Business Type."
-                )
-
-            # =================================================
-            # CHECKBOX VALIDATION - FIXED
-            # =================================================
-
-            def is_checked(field_name):
-
-                value = request.POST.get(
-                    field_name,
-                    ""
-                ).strip().lower()
-
-                return value in [
-                    "1",
-                    "on",
-                    "true",
-                    "yes"
-                ]
-
-            terms_accepted = is_checked(
-                "terms_accepted"
-            )
-
-            privacy_policy_accepted = is_checked(
-                "privacy_policy_accepted"
-            )
-
-            return_policy_accepted = is_checked(
-                "return_policy_accepted"
-            )
-
-            commission_agreement_accepted = is_checked(
-                "commission_agreement_accepted"
-            )
-
-            if not terms_accepted:
-                raise ValueError(
-                    "You must accept the Terms & Conditions."
-                )
-
-            if not privacy_policy_accepted:
-                raise ValueError(
-                    "You must accept the Privacy Policy."
-                )
-
-            if not return_policy_accepted:
-                raise ValueError(
-                    "You must accept the Return Policy."
-                )
-
-            if not commission_agreement_accepted:
-                raise ValueError(
-                    "You must accept the Seller Agreement."
                 )
 
             # =================================================
@@ -1797,31 +1745,55 @@ def seller_register_step1(request):
 
             files_to_validate = [
 
-                (profile_photo, "Profile Photo"),
+                (
+                    profile_photo,
+                    "Profile Photo"
+                ),
 
-                (gst_certificate, "GST Certificate"),
+                (
+                    gst_certificate,
+                    "GST Certificate"
+                ),
 
                 (
                     incorporation_certificate,
                     "Incorporation Certificate"
                 ),
 
-                (partnership_deed, "Partnership Deed"),
+                (
+                    partnership_deed,
+                    "Partnership Deed"
+                ),
 
                 (
                     trademark_certificate,
                     "Trademark Certificate"
                 ),
 
-                (pan_image, "PAN Image"),
+                (
+                    pan_image,
+                    "PAN Image"
+                ),
 
-                (business_license, "Business License"),
+                (
+                    business_license,
+                    "Business License"
+                ),
 
-                (llp_agreement, "LLP Agreement"),
+                (
+                    llp_agreement,
+                    "LLP Agreement"
+                ),
 
-                (moa_document, "MOA Document"),
+                (
+                    moa_document,
+                    "MOA Document"
+                ),
 
-                (aoa_document, "AOA Document"),
+                (
+                    aoa_document,
+                    "AOA Document"
+                ),
 
                 (
                     udyam_registration,
@@ -1849,42 +1821,28 @@ def seller_register_step1(request):
 
             with transaction.atomic():
 
-                # ---------------------------------------------
+                # =============================================
                 # CREATE USER
-                # ---------------------------------------------
-
-                username = request.POST.get(
-                    "username",
-                    ""
-                ).strip()
-
-                email = request.POST.get(
-                    "email",
-                    ""
-                ).strip()
-
-                password = request.POST.get(
-                    "password",
-                    ""
-                )
-
-                if not username or not email or not password:
-                    raise ValueError(
-                        "Username, email and password are required."
-                    )
+                # =============================================
 
                 user = User.objects.create_user(
 
-                    username=username,
+                    username=request.POST.get(
+                        "username"
+                    ),
 
-                    email=email,
+                    email=request.POST.get(
+                        "email"
+                    ),
 
-                    password=password
+                    password=request.POST.get(
+                        "password"
+                    )
                 )
 
-                # ---------------------------------------------
+                # =============================================
                 # CREATE SELLER PROFILE
-                # ---------------------------------------------
+                # =============================================
 
                 seller = SellerProfile.objects.create(
 
@@ -1908,7 +1866,9 @@ def seller_register_step1(request):
                         "gender"
                     ),
 
-                    email=email,
+                    email=request.POST.get(
+                        "email"
+                    ),
 
                     company_name=request.POST.get(
                         "company_name"
@@ -1938,7 +1898,9 @@ def seller_register_step1(request):
                         "country"
                     ),
 
-                    # FILES
+                    # =========================================
+                    # DOCUMENT UPLOADS
+                    # =========================================
 
                     profile_photo=profile_photo,
 
@@ -1967,27 +1929,11 @@ def seller_register_step1(request):
                     shop_establishment_license=(
                         shop_establishment_license
                     ),
-
-                    # AGREEMENTS
-
-                    terms_accepted=terms_accepted,
-
-                    privacy_policy_accepted=(
-                        privacy_policy_accepted
-                    ),
-
-                    return_policy_accepted=(
-                        return_policy_accepted
-                    ),
-
-                    commission_agreement_accepted=(
-                        commission_agreement_accepted
-                    ),
                 )
 
-                # ---------------------------------------------
+                # =============================================
                 # SESSION MANAGEMENT
-                # ---------------------------------------------
+                # =============================================
 
                 request.session[
                     "seller_step1_completed"
@@ -1999,9 +1945,9 @@ def seller_register_step1(request):
 
                 request.session.modified = True
 
-                # ---------------------------------------------
+                # =============================================
                 # REDIRECT TO STEP 2
-                # ---------------------------------------------
+                # =============================================
 
                 return redirect(
                     "seller_register_step2",
@@ -2036,6 +1982,10 @@ def seller_register_step1(request):
         }
     )
 
+    # =====================================================
+    # PREVENT CACHE
+    # =====================================================
+
     response["Cache-Control"] = (
         "no-store, no-cache, must-revalidate, "
         "max-age=0, private"
@@ -2046,7 +1996,6 @@ def seller_register_step1(request):
     response["Expires"] = "0"
 
     return response
-
 
 
 from django.shortcuts import render, redirect, get_object_or_404
