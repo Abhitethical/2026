@@ -50,6 +50,7 @@ urlpatterns=[
 
 
 
+  path('step1/', views.seller_register_step1, name='seller_register_step1'),
 
 
   path('seller_login/', views.seller_login, name='seller_login'),
