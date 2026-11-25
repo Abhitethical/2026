@@ -1527,7 +1527,7 @@ ShopKart Seller Security Team
 
 
 
-@never_cache
+
 def seller_register_step1(request):
 
     # =====================================================
