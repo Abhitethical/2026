@@ -54,6 +54,9 @@ urlpatterns=[
   path('step2/<int:seller_id>/', views.seller_register_step2, name='seller_register_step2'),
   path('step3/<int:seller_id>/', views.seller_register_step3, name='seller_register_step3'),
   path('complete/', views.registration_complete, name='registration_complete'),
+  path('seller_dashboard/', views.seller_dashboard, name='seller_dashboard'),
+
+    
 
 
   path('seller_login/', views.seller_login, name='seller_login'),
