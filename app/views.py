@@ -2558,6 +2558,271 @@ def saller_customer_orders(request):
 
 
 
+def seller_neworders(request):
+    """
+    Display all orders for the logged-in seller's products.
+    """
+    seller_username = request.user.username
+    orders = Placedorderxx.objects.filter(product__vendor=seller_username).select_related('product', 'user')
+
+    return render(request, 'saller/seller_neworders.html', {'orders': orders})
+
+@login_required
+def seller_order_status(request):
+    seller_name = request.user.username
+
+    orders = Placedorderxx.objects.filter(
+        product__vendor=seller_name
+    )
+
+    status_counts = orders.values("status").annotate(
+        total=Count("status")
+    )
+
+    data = {
+        "pending": 0,
+        "processing": 0,
+        "shipped": 0,
+        "delivered": 0,
+        "completed": 0,
+    }
+
+    for item in status_counts:
+        status = (item["status"] or "").lower()
+
+        if status in data:
+            data[status] = item["total"]
+
+    context = {
+        "labels": list(data.keys()),
+        "values": list(data.values()),
+    }
+
+    return render(
+        request,
+        "saller/seller_order_status.html",
+        context,
+    )
+
+
+
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import F, Sum, DecimalField, ExpressionWrapper, Value
+from django.db.models.functions import Coalesce
+from django.shortcuts import render
+from django.utils.timezone import now
+
+from .models import Placedorderxx
+
+
+def saller_sales_reportx(request):
+
+    today = now().date()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+    year_ago = today - timedelta(days=365)
+
+    revenue_expression = ExpressionWrapper(
+        (
+            F('product__selling_price') * F('quantity')
+        ) - Coalesce(
+            F('coupon_discount'),
+            Value(0.0)
+        ),
+        output_field=DecimalField(
+            max_digits=12,
+            decimal_places=2
+        )
+    )
+
+    seller_filter = {
+        'product__vendor': request.user.username,
+        'status': 'completed'
+    }
+
+    daily_sales = (
+        Placedorderxx.objects
+        .filter(
+            ordered_date__date=today,
+            **seller_filter
+        )
+        .select_related('product')
+    )
+
+    weekly_sales = (
+        Placedorderxx.objects
+        .filter(
+            ordered_date__date__gte=week_ago,
+            **seller_filter
+        )
+        .select_related('product')
+    )
+
+    monthly_sales = (
+        Placedorderxx.objects
+        .filter(
+            ordered_date__date__gte=month_ago,
+            **seller_filter
+        )
+        .select_related('product')
+    )
+
+    yearly_sales = (
+        Placedorderxx.objects
+        .filter(
+            ordered_date__date__gte=year_ago,
+            **seller_filter
+        )
+        .select_related('product')
+    )
+
+    for qs in [
+        daily_sales,
+        weekly_sales,
+        monthly_sales,
+        yearly_sales
+    ]:
+
+        for order in qs:
+
+            product_price = Decimal(
+                str(order.product.selling_price or 0)
+            )
+
+            quantity = Decimal(
+                str(order.quantity or 0)
+            )
+
+            coupon_discount = Decimal(
+                str(order.coupon_discount or 0)
+            )
+
+            # Gross amount
+            gross_amount = product_price * quantity
+
+            # Net amount after coupon discount
+            net_amount = gross_amount - coupon_discount
+
+            # Prevent negative revenue
+            if net_amount < 0:
+                net_amount = Decimal('0.00')
+
+            order.gross_amount = gross_amount
+            order.revenue = net_amount
+
+    daily_total_quantity = (
+        daily_sales.aggregate(
+            total_qty=Sum('quantity')
+        )['total_qty'] or 0
+    )
+
+    weekly_total_quantity = (
+        weekly_sales.aggregate(
+            total_qty=Sum('quantity')
+        )['total_qty'] or 0
+    )
+
+    monthly_total_quantity = (
+        monthly_sales.aggregate(
+            total_qty=Sum('quantity')
+        )['total_qty'] or 0
+    )
+
+    yearly_total_quantity = (
+        yearly_sales.aggregate(
+            total_qty=Sum('quantity')
+        )['total_qty'] or 0
+    )
+
+    daily_coupon_discount = (
+        daily_sales.aggregate(
+            total_discount=Sum('coupon_discount')
+        )['total_discount'] or 0
+    )
+
+    weekly_coupon_discount = (
+        weekly_sales.aggregate(
+            total_discount=Sum('coupon_discount')
+        )['total_discount'] or 0
+    )
+
+    monthly_coupon_discount = (
+        monthly_sales.aggregate(
+            total_discount=Sum('coupon_discount')
+        )['total_discount'] or 0
+    )
+
+    yearly_coupon_discount = (
+        yearly_sales.aggregate(
+            total_discount=Sum('coupon_discount')
+        )['total_discount'] or 0
+    )
+
+    daily_revenue = (
+        daily_sales.aggregate(
+            total_revenue=Sum(revenue_expression)
+        )['total_revenue'] or 0
+    )
+
+    weekly_revenue = (
+        weekly_sales.aggregate(
+            total_revenue=Sum(revenue_expression)
+        )['total_revenue'] or 0
+    )
+
+    monthly_revenue = (
+        monthly_sales.aggregate(
+            total_revenue=Sum(revenue_expression)
+        )['total_revenue'] or 0
+    )
+
+    yearly_revenue = (
+        yearly_sales.aggregate(
+            total_revenue=Sum(revenue_expression)
+        )['total_revenue'] or 0
+    )
+
+    daily_revenue = int(daily_revenue)
+    weekly_revenue = int(weekly_revenue)
+    monthly_revenue = int(monthly_revenue)
+    yearly_revenue = int(yearly_revenue)
+
+    context = {
+
+        # Sales
+        'daily_sales': daily_sales,
+        'weekly_sales': weekly_sales,
+        'monthly_sales': monthly_sales,
+        'yearly_sales': yearly_sales,
+
+        # Quantity
+        'daily_total_quantity': daily_total_quantity,
+        'weekly_total_quantity': weekly_total_quantity,
+        'monthly_total_quantity': monthly_total_quantity,
+        'yearly_total_quantity': yearly_total_quantity,
+
+        # Revenue after coupon discount
+        'daily_revenue': daily_revenue,
+        'weekly_revenue': weekly_revenue,
+        'monthly_revenue': monthly_revenue,
+        'yearly_revenue': yearly_revenue,
+
+        # Coupon discount
+        'daily_coupon_discount': daily_coupon_discount,
+        'weekly_coupon_discount': weekly_coupon_discount,
+        'monthly_coupon_discount': monthly_coupon_discount,
+        'yearly_coupon_discount': yearly_coupon_discount,
+    }
+
+    return render(
+        request,
+        'saller/saller_sales_report.html',
+        context
+    )
+
+
 
 
 
