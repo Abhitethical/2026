@@ -2785,3 +2785,81 @@ def saller_sales_report(request):
         "saller/saller_sales_report.html",
         context,
     )
+
+
+
+
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from .models import Placedorderxx
+
+@login_required
+def seller_top_selling_products(request):
+    seller_name = request.user.username
+
+    # Only completed / delivered orders (real sales)
+    orders = (
+        Placedorderxx.objects
+        .filter(
+            product__vendor=seller_name,
+            status__in=['delivered', 'completed']
+        )
+        .values('product__name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:5]  # Top 5 products
+    )
+
+    labels = [item['product__name'] for item in orders]
+    values = [item['total_sold'] for item in orders]
+
+    context = {
+        'labels': labels,
+        'values': values,
+    }
+
+    return render(request, 'saller/seller_top_selling_products.html', context)
+
+
+
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Product, Placedorderxx
+
+
+def saller_low_stock(request):
+    """
+    Display all products with quantity less than 5 for the logged-in seller.
+    """
+    seller_username = request.user.username  # Assuming vendor stores username
+    products = Product.objects.filter(vendor=seller_username, quantity__lt=5)
+    return render(request, 'saller/saller_low_stock.html', {'products': products})
+
+
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+
+from .models import ReturnRequested
+@login_required
+def seller_return_list(request):
+
+
+    returns = ReturnRequested.objects.filter(
+        vendor=request.user.username
+    ).order_by(
+        "-requested_at"
+    )
+
+
+    return render(
+        request,
+        "seller_return_list.html",
+        {
+            "returns":returns
+        }
+    )
+
