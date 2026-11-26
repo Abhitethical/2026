@@ -2237,6 +2237,233 @@ def registration_complete(request):
 
 
 
+from datetime import date, timedelta
+
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import (
+    F,
+    Sum,
+    DecimalField,
+    ExpressionWrapper,
+    Value,
+)
+from django.db.models.functions import Coalesce
+from django.shortcuts import render
+from django.utils import timezone
+
+from .models import (
+    SellerProfile,
+    Product,
+    Placedorderxx,
+    CustomerRegistration,
+    SellerLoginHistory,
+)
+
+
+
+
+@login_required
+def seller_dashboard(request):
+
+    user = request.user
+
+    seller = SellerProfile.objects.get(user=user)
+
+    seller_username = user.username
+
+    products = Product.objects.filter(
+        vendor=seller_username
+    )
+
+    total_products = products.count()
+
+    orders = (
+        Placedorderxx.objects
+        .filter(
+            product__vendor=seller_username
+        )
+        .select_related(
+            "user",
+            "product"
+        )
+        .order_by("-id")
+    )
+
+    total_orders = orders.count()
+
+    revenue_expression = ExpressionWrapper(
+        (
+            F("quantity") * F("product__selling_price")
+        )
+        - Coalesce(
+            F("coupon_discount"),
+            Value(0.0)
+        ),
+        output_field=DecimalField(
+            max_digits=12,
+            decimal_places=2
+        )
+    )
+
+    total_revenue = (
+        orders
+        .filter(
+            status__in=[
+                "Delivered",
+                "Completed",
+                "delivered",
+                "completed"
+            ]
+        )
+        .aggregate(
+            total=Sum(revenue_expression)
+        )["total"] or 0
+    )
+    if total_revenue < 0:
+        total_revenue = 0
+
+
+    paginator = Paginator(
+        orders,
+        3
+    )
+
+    page_number = request.GET.get("page")
+
+    recent_orders = paginator.get_page(
+        page_number
+    )
+
+    new_order_time = date.today() - timedelta(
+        days=2
+    )
+
+    for order in recent_orders:
+        product_price = order.product.selling_price or 0
+
+        quantity = order.quantity or 0
+
+        coupon_discount = order.coupon_discount or 0
+
+
+        gross_amount = (
+            quantity * product_price
+        )
+
+        net_amount = (
+            gross_amount - coupon_discount
+        )
+
+        if net_amount < 0:
+            net_amount = 0
+
+        order.gross_amount = gross_amount
+        order.coupon_discount_amount = coupon_discount
+        order.total = int(net_amount)
+
+        order.is_new = (
+            order.created_at.date() >= new_order_time
+        )
+
+    customers = (
+        CustomerRegistration.objects
+        .filter(
+            user__placedorderxx__product__vendor=seller_username
+        )
+        .distinct()
+    )
+
+    total_customers = customers.count()
+
+    history = (
+        SellerLoginHistory.objects
+        .filter(
+            seller=user
+        )
+        .order_by(
+            "-login_time"
+        )
+        .first()
+    )
+
+    login_time = None
+    logout_time = None
+    last_login = user.last_login
+    spent_hours = ""
+
+    if history:
+
+        login_time = history.login_time
+
+        logout_time = history.logout_time
+
+        if logout_time:
+
+            spent = (
+                logout_time - login_time
+            )
+
+        else:
+
+            spent = (
+                timezone.now() - login_time
+            )
+
+        total_seconds = int(
+            spent.total_seconds()
+        )
+
+        hours = total_seconds // 3600
+
+        minutes = (
+            total_seconds % 3600
+        ) // 60
+
+        spent_hours = (
+            f"{hours} Hour {minutes} Minute"
+        )
+
+    context = {
+
+        # Seller
+        "seller": seller,
+
+        # Products
+        "products": products,
+
+        # Orders
+        "recent_orders": recent_orders,
+        "orders": orders,
+
+        # Counts
+        "total_products": total_products,
+        "total_orders": total_orders,
+        "total_customers": total_customers,
+
+        # Revenue AFTER coupon discount
+        "total_revenue": total_revenue,
+
+        # Date
+        "today": date.today(),
+
+        # Login history
+        "login_time": login_time,
+        "logout_time": logout_time,
+        "last_login": last_login,
+        "spent_hours": spent_hours,
+    }
+
+    return render(
+        request,
+        "saller/seller_dashboard.html",
+        context
+    )
+
+
+
+
+
 
 
 
