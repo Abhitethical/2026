@@ -64,6 +64,9 @@ urlpatterns=[
   path('seller_top_selling_products/',views.seller_top_selling_products,name='seller_top_selling_products'),
   path('saller_low_stock/', views.saller_low_stock, name='saller_low_stock'),
   path('seller/returns/',views.seller_return_list,name='seller_return_list'),
+  path('seller_ticket_dashboard/', views.seller_ticket_dashboard, name='seller_ticket_dashboard'),
+  path('search/', views.ticket_search, name='ticket_search'),
+  path('bank-details/', views.seller_bank_form, name='seller_bank_form'),  
 
 
     
