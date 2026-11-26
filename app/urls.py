@@ -57,6 +57,7 @@ urlpatterns=[
   path("seller_dashboard/", views.seller_dashboard, name="seller_dashboard"),
   path("saller_product_list/", views.saller_product_list, name="saller_product_list"),
   path("advertisements/",views.saller_advertisements,name="saller_advertisements"),
+  path("saller_customer_orders/", views.saller_customer_orders, name="saller_customer_orders"), 
 
 
 
