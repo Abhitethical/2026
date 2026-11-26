@@ -2456,6 +2456,15 @@ def seller_dashboard(request):
         context
     )
 
+@login_required
+def saller_product_list(request):
+    products = Product.objects.filter(vendor=request.user)
+
+    return render(request, "saller/saller_product_list.html", {
+        "products": products
+    })
+
+
 
 
 
