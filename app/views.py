@@ -2467,6 +2467,62 @@ def saller_product_list(request):
 
 
 
+from django.shortcuts import render,redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+
+from .forms import AdvertisementForm
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+
+
+@login_required
+def saller_advertisements(request):
+
+    ads = Advertisementx.objects.filter(
+        seller=request.user
+    )
+
+    total_ads = ads.count()
+
+    active_ads = ads.filter(
+        status="RUNNING"
+    ).count()
+
+    pending_ads = ads.filter(
+        status="WAITING_APPROVAL"
+    ).count()
+
+    expired_ads = ads.filter(
+        status="EXPIRED"
+    ).count()
+
+    total_spending = ads.aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+    context = {
+
+        "total_ads": total_ads,
+        "active_ads": active_ads,
+        "pending_ads": pending_ads,
+        "expired_ads": expired_ads,
+        "total_spending": total_spending,
+        "ads": ads
+
+    }
+
+    return render(
+        request,
+        "saller/advertisements.html",
+        context
+    )
+
+
+
 
 
 
