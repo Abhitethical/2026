@@ -58,6 +58,9 @@ urlpatterns=[
   path("saller_product_list/", views.saller_product_list, name="saller_product_list"),
   path("advertisements/",views.saller_advertisements,name="saller_advertisements"),
   path("saller_customer_orders/", views.saller_customer_orders, name="saller_customer_orders"), 
+  path('seller_neworders/', views.seller_neworders, name='seller_neworders'),
+  path('seller_order_status/', views.seller_order_status, name='seller_order_status'),
+  path('saller_sales_report/', views.saller_sales_report, name='saller_sales_report'),
 
 
 
