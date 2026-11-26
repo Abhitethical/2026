@@ -389,27 +389,3 @@ class AdvertisementForm(forms.ModelForm):
 
 
 
-from django import forms
-from .models import SellerBankDetailxx
-
-class SellerBankForm(forms.ModelForm):
-    class Meta:
-        model = SellerBankDetailxx
-        # Seller fills these fields
-        fields = ['name', 'mobile_number', 'address', 'account_number', 'ifsc_code']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your full name'}),
-            'mobile_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter mobile number'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Enter address', 'rows': 3}),
-            'account_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter account number'}),
-            'ifsc_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter IFSC code', 'id': 'ifsc'}),
-        }
-
-
-
-
-
-        return cleaned_data
-    
-
-
