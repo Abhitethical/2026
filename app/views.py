@@ -2617,214 +2617,171 @@ from django.utils.timezone import now
 from .models import Placedorderxx
 
 
-def saller_sales_reportx(request):
+@login_required
+def saller_sales_report(request):
+    today = timezone.localdate()
 
-    today = now().date()
-    week_ago = today - timedelta(days=7)
-    month_ago = today - timedelta(days=30)
-    year_ago = today - timedelta(days=365)
+    # Calendar reporting periods.
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
 
-    revenue_expression = ExpressionWrapper(
-        (
-            F('product__selling_price') * F('quantity')
-        ) - Coalesce(
-            F('coupon_discount'),
-            Value(0.0)
-        ),
-        output_field=DecimalField(
-            max_digits=12,
-            decimal_places=2
-        )
-    )
-
+    # Completed orders for the logged-in seller only.
     seller_filter = {
-        'product__vendor': request.user.username,
-        'status': 'completed'
+        "product__vendor": request.user.username,
+        "status__iexact": "completed",
     }
 
-    daily_sales = (
-        Placedorderxx.objects
-        .filter(
-            ordered_date__date=today,
-            **seller_filter
+    def get_sales(start_date, end_date):
+        return list(
+            Placedorderxx.objects.filter(
+                **seller_filter,
+                ordered_date__date__gte=start_date,
+                ordered_date__date__lte=end_date,
+            )
+            .select_related("product")
+            .order_by("-ordered_date")
         )
-        .select_related('product')
-    )
 
-    weekly_sales = (
-        Placedorderxx.objects
-        .filter(
-            ordered_date__date__gte=week_ago,
-            **seller_filter
-        )
-        .select_related('product')
-    )
+    # Fetch orders for each period.
+    daily_sales = get_sales(today, today)
+    weekly_sales = get_sales(week_start, today)
+    monthly_sales = get_sales(month_start, today)
+    yearly_sales = get_sales(year_start, today)
 
-    monthly_sales = (
-        Placedorderxx.objects
-        .filter(
-            ordered_date__date__gte=month_ago,
-            **seller_filter
-        )
-        .select_related('product')
-    )
+    def calculate_sales(orders):
+        total_quantity = 0
+        total_selling_price = ZERO
+        total_coupon_discount = ZERO
+        total_final_amount = ZERO
 
-    yearly_sales = (
-        Placedorderxx.objects
-        .filter(
-            ordered_date__date__gte=year_ago,
-            **seller_filter
-        )
-        .select_related('product')
-    )
+        for order in orders:
+            quantity = max(int(order.quantity or 0), 0)
+            product = order.product
 
-    for qs in [
-        daily_sales,
-        weekly_sales,
-        monthly_sales,
-        yearly_sales
-    ]:
+            # Unit selling price and total before discount.
+            unit_price = money(product.selling_price)
+            selling_price_total = money(unit_price * quantity)
 
-        for order in qs:
+            # First use the discount saved on the order.
+            saved_discount = getattr(order, "coupon_discount", None)
 
-            product_price = Decimal(
-                str(order.product.selling_price or 0)
+            if (
+                saved_discount is not None
+                and money(saved_discount) > ZERO
+            ):
+                coupon_discount_total = money(saved_discount)
+
+            else:
+                # Fallback to the product coupon discount.
+                # Adjust these field names if your Product model
+                # uses different names.
+                product_discount = money(
+                    getattr(product, "coupon_discount", 0)
+                )
+
+                coupon_active = getattr(
+                    product, "coupon_active", True
+                )
+                coupon_expiry = getattr(
+                    product, "coupon_expiry", None
+                )
+
+                coupon_valid = (
+                    coupon_active
+                    and (
+                        coupon_expiry is None
+                        or coupon_expiry >= today
+                    )
+                )
+
+                if coupon_valid:
+                    coupon_discount_total = money(
+                        product_discount * quantity
+                    )
+                else:
+                    coupon_discount_total = ZERO
+
+            # Keep discount within the selling-price amount.
+            coupon_discount_total = min(
+                max(coupon_discount_total, ZERO),
+                selling_price_total,
             )
 
-            quantity = Decimal(
-                str(order.quantity or 0)
+            # Final total after discount.
+            final_total = money(
+                selling_price_total - coupon_discount_total
             )
 
-            coupon_discount = Decimal(
-                str(order.coupon_discount or 0)
-            )
+            # IMPORTANT: names used by your HTML template.
+            order.selling_price_unit = unit_price
+            order.selling_price_total = selling_price_total
+            order.coupon_discount_total = coupon_discount_total
 
-            # Gross amount
-            gross_amount = product_price * quantity
+            # Your HTML uses order.total_amount.
+            order.total_amount = final_total
 
-            # Net amount after coupon discount
-            net_amount = gross_amount - coupon_discount
+            # Keep this alias if another template uses it.
+            order.final_total = final_total
 
-            # Prevent negative revenue
-            if net_amount < 0:
-                net_amount = Decimal('0.00')
+            total_quantity += quantity
+            total_selling_price += selling_price_total
+            total_coupon_discount += coupon_discount_total
+            total_final_amount += final_total
 
-            order.gross_amount = gross_amount
-            order.revenue = net_amount
+        return {
+            "total_quantity": total_quantity,
+            "selling_price": money(total_selling_price),
+            "coupon_discount": money(total_coupon_discount),
+            "revenue": money(total_final_amount),
+        }
 
-    daily_total_quantity = (
-        daily_sales.aggregate(
-            total_qty=Sum('quantity')
-        )['total_qty'] or 0
-    )
-
-    weekly_total_quantity = (
-        weekly_sales.aggregate(
-            total_qty=Sum('quantity')
-        )['total_qty'] or 0
-    )
-
-    monthly_total_quantity = (
-        monthly_sales.aggregate(
-            total_qty=Sum('quantity')
-        )['total_qty'] or 0
-    )
-
-    yearly_total_quantity = (
-        yearly_sales.aggregate(
-            total_qty=Sum('quantity')
-        )['total_qty'] or 0
-    )
-
-    daily_coupon_discount = (
-        daily_sales.aggregate(
-            total_discount=Sum('coupon_discount')
-        )['total_discount'] or 0
-    )
-
-    weekly_coupon_discount = (
-        weekly_sales.aggregate(
-            total_discount=Sum('coupon_discount')
-        )['total_discount'] or 0
-    )
-
-    monthly_coupon_discount = (
-        monthly_sales.aggregate(
-            total_discount=Sum('coupon_discount')
-        )['total_discount'] or 0
-    )
-
-    yearly_coupon_discount = (
-        yearly_sales.aggregate(
-            total_discount=Sum('coupon_discount')
-        )['total_discount'] or 0
-    )
-
-    daily_revenue = (
-        daily_sales.aggregate(
-            total_revenue=Sum(revenue_expression)
-        )['total_revenue'] or 0
-    )
-
-    weekly_revenue = (
-        weekly_sales.aggregate(
-            total_revenue=Sum(revenue_expression)
-        )['total_revenue'] or 0
-    )
-
-    monthly_revenue = (
-        monthly_sales.aggregate(
-            total_revenue=Sum(revenue_expression)
-        )['total_revenue'] or 0
-    )
-
-    yearly_revenue = (
-        yearly_sales.aggregate(
-            total_revenue=Sum(revenue_expression)
-        )['total_revenue'] or 0
-    )
-
-    daily_revenue = int(daily_revenue)
-    weekly_revenue = int(weekly_revenue)
-    monthly_revenue = int(monthly_revenue)
-    yearly_revenue = int(yearly_revenue)
+    # Calculate totals for each reporting period.
+    daily_totals = calculate_sales(daily_sales)
+    weekly_totals = calculate_sales(weekly_sales)
+    monthly_totals = calculate_sales(monthly_sales)
+    yearly_totals = calculate_sales(yearly_sales)
 
     context = {
+        # Order lists.
+        "daily_sales": daily_sales,
+        "weekly_sales": weekly_sales,
+        "monthly_sales": monthly_sales,
+        "yearly_sales": yearly_sales,
 
-        # Sales
-        'daily_sales': daily_sales,
-        'weekly_sales': weekly_sales,
-        'monthly_sales': monthly_sales,
-        'yearly_sales': yearly_sales,
+        # Quantities.
+        "daily_total_quantity": daily_totals["total_quantity"],
+        "weekly_total_quantity": weekly_totals["total_quantity"],
+        "monthly_total_quantity": monthly_totals["total_quantity"],
+        "yearly_total_quantity": yearly_totals["total_quantity"],
 
-        # Quantity
-        'daily_total_quantity': daily_total_quantity,
-        'weekly_total_quantity': weekly_total_quantity,
-        'monthly_total_quantity': monthly_total_quantity,
-        'yearly_total_quantity': yearly_total_quantity,
+        # Selling price before discounts.
+        "daily_selling_price": daily_totals["selling_price"],
+        "weekly_selling_price": weekly_totals["selling_price"],
+        "monthly_selling_price": monthly_totals["selling_price"],
+        "yearly_selling_price": yearly_totals["selling_price"],
 
-        # Revenue after coupon discount
-        'daily_revenue': daily_revenue,
-        'weekly_revenue': weekly_revenue,
-        'monthly_revenue': monthly_revenue,
-        'yearly_revenue': yearly_revenue,
+        # Coupon discounts.
+        "daily_coupon_discount": daily_totals["coupon_discount"],
+        "weekly_coupon_discount": weekly_totals["coupon_discount"],
+        "monthly_coupon_discount": monthly_totals["coupon_discount"],
+        "yearly_coupon_discount": yearly_totals["coupon_discount"],
 
-        # Coupon discount
-        'daily_coupon_discount': daily_coupon_discount,
-        'weekly_coupon_discount': weekly_coupon_discount,
-        'monthly_coupon_discount': monthly_coupon_discount,
-        'yearly_coupon_discount': yearly_coupon_discount,
+        # Final amount after discounts.
+        "daily_revenue": daily_totals["revenue"],
+        "weekly_revenue": weekly_totals["revenue"],
+        "monthly_revenue": monthly_totals["revenue"],
+        "yearly_revenue": yearly_totals["revenue"],
+
+        # IMPORTANT: variable names required by your HTML.
+        "daily_total_amount": daily_totals["revenue"],
+        "weekly_total_amount": weekly_totals["revenue"],
+        "monthly_total_amount": monthly_totals["revenue"],
+        "yearly_total_amount": yearly_totals["revenue"],
     }
 
     return render(
         request,
-        'saller/saller_sales_report.html',
-        context
+        "saller/saller_sales_report.html",
+        context,
     )
-
-
-
-
-
-
-
