@@ -61,7 +61,9 @@ urlpatterns=[
   path('seller_neworders/', views.seller_neworders, name='seller_neworders'),
   path('seller_order_status/', views.seller_order_status, name='seller_order_status'),
   path('saller_sales_report/', views.saller_sales_report, name='saller_sales_report'),
-
+  path('seller_top_selling_products/',views.seller_top_selling_products,name='seller_top_selling_products'),
+  path('saller_low_stock/', views.saller_low_stock, name='saller_low_stock'),
+  path('seller/returns/',views.seller_return_list,name='seller_return_list'),
 
 
     
