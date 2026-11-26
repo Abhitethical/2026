@@ -2523,6 +2523,40 @@ def saller_advertisements(request):
 
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .models import Placedorderxx
+
+@login_required
+def saller_customer_orders(request):
+    # ✅ Filter orders by snapshot vendor field
+    orders = Placedorderxx.objects.filter(vendor=request.user.username).select_related("user")
+
+    if request.method == "POST":
+        order_id = request.POST.get("order_id")
+        status = request.POST.get("status")
+
+        try:
+            order = Placedorderxx.objects.get(id=order_id)
+
+            # ✅ Only allow seller to update their own orders
+            if order.vendor != request.user.username:
+                return redirect("saller_customer_orders")
+
+        except Placedorderxx.DoesNotExist:
+            return redirect("saller_customer_orders")
+
+        # Prevent admin-locked orders
+        if order.updated_by_admin:
+            return redirect("saller_customer_orders")
+
+        # ✅ Update order status safely
+        order.status = status
+        order.save()
+
+    return render(request, "saller/saller_customer_orders.html", {"orders": orders})
+
+
 
 
 
