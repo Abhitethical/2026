@@ -3171,3 +3171,59 @@ def delete_product(request, pk):
     })
   
 
+
+
+
+
+@login_required
+def create_advertisement(request):
+
+    if request.method == "POST":
+
+        form = AdvertisementForm(
+            request.POST,
+            request.FILES
+        )
+
+        if form.is_valid():
+
+            ad = form.save(commit=False)
+
+            ad.seller = request.user
+            ad.status = "PENDING_PAYMENT"
+            ad.payment_status = "PENDING"
+
+            plan_prices = {
+                "BASIC": 500,
+                "STANDARD": 1250,
+                "PREMIUM": 2500,
+                "GOLD": 4500,
+                "PLATINUM": 8000,
+            }
+
+            plan = request.POST.get("plan")
+            amount = plan_prices.get(plan)
+
+            if amount is None:
+                form.add_error("plan", "Please select a valid advertisement plan.")
+            else:
+                ad.plan = plan
+                ad.amount = amount
+                ad.save()
+
+                return redirect(
+                    "advertisement_payment",
+                    ad.id
+                )
+
+    else:
+        form = AdvertisementForm()
+
+    return render(
+        request,
+        "saller/create_advertisement.html",
+        {
+            "form": form
+        }
+    )
+
