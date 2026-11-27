@@ -2863,3 +2863,23 @@ def seller_return_list(request):
         }
     )
 
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.contrib import messages
+from .models import Tickets
+from django.contrib.auth.models import User
+import uuid
+
+# ---------- Helper ----------
+def generate_ticket_number():
+    return f"TCK-{uuid.uuid4().hex[:8].upper()}"
+
+
+# ---------- Seller Dashboard ----------
+@login_required
+def seller_ticket_dashboard(request):
+    tickets = Tickets.objects.filter(seller=request.user).order_by('-created_at')
+    return render(request, 'saller/seller_ticket_dashboard.html', {'tickets': tickets})
+
