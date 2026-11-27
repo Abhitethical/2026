@@ -67,6 +67,7 @@ urlpatterns=[
   path('seller_ticket_dashboard/', views.seller_ticket_dashboard, name='seller_ticket_dashboard'),
   path('search/', views.ticket_search, name='ticket_search'),
   path('bank-details/', views.seller_bank_form, name='seller_bank_form'),  
+  path('seller_profile/', views.seller_profile, name='seller_profile'),
 
 
     
