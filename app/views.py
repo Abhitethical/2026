@@ -3033,3 +3033,16 @@ def seller_profile(request):
         'is_locked': is_locked,
     })
 
+
+
+
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+from django.contrib import messages
+
+@login_required
+def seller_logout(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect('seller_login')
