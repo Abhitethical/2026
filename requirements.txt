@@ -10,3 +10,4 @@ Pillow>=10.4.0
 Pillow
 vercel
 python-dotenv
+requests>=2.31.0
