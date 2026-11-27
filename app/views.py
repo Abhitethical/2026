@@ -3001,3 +3001,35 @@ def seller_bank_form(request):
 
 
 
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import SellerProfile
+from .forms import SellerProfileForm
+
+@login_required
+def seller_profile(request):
+    profile = get_object_or_404(SellerProfile, user=request.user)
+    is_locked = profile.status in ['approved', 'blocked']
+
+    if request.method == 'POST':
+        if is_locked:
+            return redirect('seller-profile')  # Prevent updates
+        form = SellerProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('seller-profile')
+    else:
+        form = SellerProfileForm(instance=profile)
+
+    # Disable fields if locked
+    if is_locked:
+        for field in form.fields.values():
+            field.disabled = True
+
+    return render(request, 'saller/seller_profile.html', {
+        'profile': profile,
+        'form': form,
+        'is_locked': is_locked,
+    })
+
