@@ -2883,3 +2883,47 @@ def seller_ticket_dashboard(request):
     tickets = Tickets.objects.filter(seller=request.user).order_by('-created_at')
     return render(request, 'saller/seller_ticket_dashboard.html', {'tickets': tickets})
 
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+
+
+# 🔎 Ticket Search
+def ticket_search(request):
+
+    if request.method == "POST":
+
+        ticket_number = request.POST.get("ticket_number", "").strip()
+
+        # Validate input
+        if not ticket_number:
+            messages.error(request, "Please enter a ticket number.")
+            return render(request, "ticket_search.html")
+
+        # Find ticket
+        ticket = Tickets.objects.filter(
+            ticket_number=ticket_number
+        ).first()
+
+        # Ticket not found
+        if ticket is None:
+            messages.error(
+                request,
+                "Ticket number not found."
+            )
+            return render(request, "ticket_search.html")
+
+        # ✅ IMPORTANT:
+        # URL expects ticket_number, not ticket_id
+        return redirect(
+            "ticket_detailabcd",
+            ticket_number=ticket.ticket_number
+        )
+
+    return render(request, "ticket_search.html")
+
+
+
