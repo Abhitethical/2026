@@ -3046,3 +3046,77 @@ def seller_logout(request):
     logout(request)
     messages.success(request, "You have been logged out successfully.")
     return redirect('seller_login')
+
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .models import Product, Catagory
+
+
+@login_required
+def saller_product_add(request):
+    categories = Catagory.objects.all()
+
+    if request.method == "POST":
+
+        quantity = request.POST.get("quantity") or 0
+        original_price = request.POST.get("original_price") or 0
+        selling_price = request.POST.get("selling_price") or 0
+
+        price_s = request.POST.get("price_s") or 0
+        price_m = request.POST.get("price_m") or 0
+        price_l = request.POST.get("price_l") or 0
+        price_xl = request.POST.get("price_xl") or 0
+        price_xxl = request.POST.get("price_xxl") or 0
+
+        coupon_discount = request.POST.get("coupon_discount") or 0
+
+        category = request.POST.get("category")
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+        size = request.POST.get("size", "").strip()
+        coupon_code = request.POST.get("coupon_code", "").strip()
+
+        Product.objects.create(
+            vendor=request.user.username,
+
+            category_id=category,
+
+            name=name,
+            quantity=quantity,
+
+            original_price=original_price,
+            selling_price=selling_price,
+
+            description=description,
+            size=size,
+
+            price_s=price_s,
+            price_m=price_m,
+            price_l=price_l,
+            price_xl=price_xl,
+            price_xxl=price_xxl,
+
+            coupon_code=coupon_code,
+            coupon_discount=coupon_discount,
+
+            product_image=request.FILES.get("product_image"),
+            product_image2=request.FILES.get("product_image2"),
+            product_image3=request.FILES.get("product_image3"),
+            product_image4=request.FILES.get("product_image4"),
+        )
+
+        return redirect("saller_product_list")
+
+    return render(
+        request,
+        "saller/saller_product_form.html",
+        {
+            "categories": categories
+        }
+    )
+
+
+
