@@ -435,5 +435,162 @@ class SellerProfileForm(forms.ModelForm):
 
 
 
+from django import forms
+from .models import Advertisementx
+
+
+class AdvertisementForm(forms.ModelForm):
+
+    class Meta:
+
+        model = Advertisementx
+
+        fields = [
+            "title",
+            "product_image",
+            "video",
+            "thumbnail",
+            "start_date",
+            "end_date",
+            "description",
+            "plan",
+        ]
+
+
+        widgets = {
+
+            "title": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Advertisement Title"
+                }
+            ),
+
+
+            "product_image": forms.FileInput(
+                attrs={
+                    "class": "form-control"
+                }
+            ),
+
+
+            "video": forms.FileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "video/mp4"
+                }
+            ),
+
+
+            "thumbnail": forms.FileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*"
+                }
+            ),
+
+
+            "start_date": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date"
+                }
+            ),
+
+
+            "end_date": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date"
+                }
+            ),
+
+
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 5,
+                    "placeholder": "Advertisement Description"
+                }
+            ),
+
+
+            "plan": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "plan"
+                }
+            ),
+        }
+
+
+
+    # Video Validation
+
+    def clean_video(self):
+
+        video = self.cleaned_data.get("video")
+
+
+        if video:
+
+            # Check size 100MB
+
+            size = video.size / (1024 * 1024)
+
+
+            if size > 100:
+
+                raise forms.ValidationError(
+                    "Maximum video size allowed is 100 MB"
+                )
+
+
+            # Check MP4
+
+            extension = video.name.split(".")[-1].lower()
+
+
+            if extension != "mp4":
+
+                raise forms.ValidationError(
+                    "Only MP4 video format is supported"
+                )
+
+
+        return video
+
+
+
+    # Date Validation
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+
+        start = cleaned_data.get(
+            "start_date"
+        )
+
+        end = cleaned_data.get(
+            "end_date"
+        )
+
+
+        if start and end:
+
+            if end < start:
+
+                raise forms.ValidationError(
+                    "End date must be after start date"
+                )
+
+
+        return cleaned_data
+    
+
+
+
 
 
