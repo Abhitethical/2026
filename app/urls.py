@@ -53,6 +53,7 @@ urlpatterns=[
   path('step1/', views.seller_register_step1, name='seller_register_step1'),
   path('step2/<int:seller_id>/', views.seller_register_step2, name='seller_register_step2'),
   path('step3/<int:seller_id>/', views.seller_register_step3, name='seller_register_step3'),
+  path('logout/', views.seller_logout, name='seller_logout'),
   path('complete/', views.registration_complete, name='registration_complete'),
   path("seller_dashboard/", views.seller_dashboard, name="seller_dashboard"),
   path("saller_product_list/", views.saller_product_list, name="saller_product_list"),
