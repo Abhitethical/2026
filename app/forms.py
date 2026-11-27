@@ -408,3 +408,32 @@ class SellerBankForm(forms.ModelForm):
 
 
 
+from django import forms
+from .models import SellerProfile
+
+class SellerProfileForm(forms.ModelForm):
+     class Meta:
+         model = SellerProfile
+         fields = [
+             'company_name',
+             'address',
+             'city',
+             'state',
+             'pincode',
+             'country',
+        ]
+         widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'state': forms.TextInput(attrs={'class': 'form-control'}),
+            'pincode': forms.TextInput(attrs={'class': 'form-control'}),
+            'country': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+
+
+
+
+
