@@ -3119,4 +3119,55 @@ def saller_product_add(request):
     )
 
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Product
+
+@login_required
+def edit_product(request, pk):
+    product = get_object_or_404(Product, id=pk, vendor=request.user.username)
+
+    if request.method == "POST":
+        product.name = request.POST.get('name')
+        product.quantity = request.POST.get('quantity')
+        product.original_price = request.POST.get('original_price')
+        product.selling_price = request.POST.get('selling_price')
+        product.description = request.POST.get('description')
+
+        if 'product_image' in request.FILES:
+            product.product_image = request.FILES['product_image']
+
+        product.save()
+        return redirect('saller_product_list')
+
+    return render(request, "saller/edit_product.html", {"product": product})
+
+
+
+
+@login_required
+def delete_product(request, pk):
+    product = get_object_or_404(Product, id=pk, vendor=request.user.username)
+
+    is_ordered = Placedorderxx.objects.filter(product=product).exists()
+
+    if request.method == "POST":
+        if is_ordered:
+            messages.error(request, "This product cannot be deleted (already ordered).")
+            return redirect('saller_product_list')
+
+        reason = request.POST.get("delete_reason")
+
+        # Optional: save reason somewhere (log model or print)
+        print(f"Deleted Product: {product.name}, Reason: {reason}")
+
+        product.delete()
+        messages.success(request, "Product deleted successfully.")
+        return redirect('saller_product_list')
+
+    return render(request, "saller/delete_product.html", {
+        "product": product,
+        "is_ordered": is_ordered
+    })
+  
 
